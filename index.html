@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Rummikub Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none;
+        user-select: none;
+      }
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      @keyframes pulse-urgent {
+        0%,
+        100% {
+          background-color: #fee2e2;
+          border-color: #ef4444;
+        }
+        50% {
+          background-color: #fca5a5;
+          border-color: #b91c1c;
+        }
+      }
+      .timer-critical {
+        animation: pulse-urgent 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        height: 4px;
+      }
+      .hide-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      .active-round-row {
+        background-color: #ffffff;
+        box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #ea580c;
+        z-index: 10;
+        position: relative;
+      }
+      .inactive-round-row {
+        background-color: #f1f5f9;
+        border-left: 4px solid transparent;
+        opacity: 0.7;
+        filter: grayscale(0.5);
+      }
+      .nav-link.active {
+        color: #ea580c;
+        border-bottom: 2px solid #ea580c;
+        font-weight: 700;
+      }
+      .nav-link {
+        color: #64748b;
+        font-weight: 500;
+        padding-bottom: 12px;
+        transition: all 0.2s;
+      }
+      @keyframes modalPop {
+        0% {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-content {
+        animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .editing-round-row {
+        background-color: #fff7ed;
+        box-shadow: 0 4px 15px -3px rgba(234, 88, 12, 0.2);
+        border-left: 4px solid #f97316;
+        z-index: 20;
+        position: relative;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      details > summary {
+        list-style: none;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-100 text-slate-800 font-sans h-screen flex flex-col">
+    <!-- 1. HEADER & ABAS -->
+    <header class="bg-white border-b border-slate-200 shadow-sm shrink-0 z-50">
+      <div class="max-w-md mx-auto px-4 pt-3">
+        <div class="flex items-center justify-between mb-3">
+          <!-- Logo e Nome (Agrupados) -->
+          <div class="flex items-center gap-3">
+            <div class="relative w-10 h-10 flex-shrink-0">
+              <!-- Ícone do Logo (sempre SVG; sem PNG/fallback) -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 512 512"
+                preserveAspectRatio="xMidYMid meet"
+                class="w-full h-full object-contain rounded-xl shadow-sm bg-white"
+                role="img"
+                aria-label="Rummikub"
+              >
+                <g
+                  transform="translate(0,512) scale(0.1,-0.1)"
+                  fill="#000000"
+                  stroke="none"
+                >
+                    <path
+                      d="M2330 4464 c-281 -50 -407 -88 -585 -174 -481 -232 -810 -650 -980
+-1245 -46 -162 -58 -269 -52 -475 6 -192 14 -240 66 -416 94 -314 237 -569
+450 -805 365 -402 921 -615 1491 -571 183 15 268 31 425 83 320 106 590 284
+821 541 487 542 596 1340 275 2013 -103 216 -197 351 -360 519 -207 212 -433
+354 -711 447 -214 71 -284 82 -565 84 -137 2 -261 1 -275 -1z m578 -253 c628
+-139 1113 -632 1252 -1271 132 -603 -112 -1231 -630 -1622 -120 -90 -334 -201
+-477 -247 -534 -172 -1124 -43 -1566 344 -285 249 -470 589 -528 970 -18 118
+-15 352 5 465 34 197 118 437 202 582 113 196 290 396 451 511 197 140 446
+239 712 282 129 21 457 13 579 -14z"
+                    />
+                    <path
+                      d="M1588 3417 c-73 -25 -151 -75 -230 -145 -83 -76 -99 -137 -40 -161
+37 -15 63 -5 133 52 77 63 185 131 243 153 58 21 163 24 219 5 21 -7 71 -42
+110 -78 136 -123 171 -140 241 -113 74 28 -11 163 -144 230 -113 57 -178 73
+-325 77 -127 3 -146 1 -207 -20z"
+                    />
+                    <path
+                      d="M3270 3396 c-142 -33 -258 -85 -326 -148 -37 -34 -44 -47 -44 -78 0
+-47 20 -65 74 -65 34 0 55 10 126 62 47 34 112 75 145 90 53 25 71 28 160 28
+123 0 155 -15 265 -120 41 -39 86 -79 100 -88 32 -22 82 -22 110 1 19 15 21
+24 15 52 -14 65 -156 190 -281 247 -52 24 -73 27 -174 30 -68 1 -138 -3 -170
+-11z"
+                    />
+                    <path
+                      d="M1615 3191 c-11 -5 -31 -20 -43 -34 l-24 -25 25 -17 c17 -11 62 -19
+149 -24 109 -8 136 -13 232 -50 88 -33 195 -60 239 -61 4 0 7 11 7 24 0 46
+-72 92 -240 151 -92 33 -119 38 -215 41 -60 2 -119 0 -130 -5z"
+                    />
+                    <path
+                      d="M2455 3161 c-26 -29 -32 -113 -11 -146 33 -50 84 -17 92 60 8 84 -37
+133 -81 86z"
+                    />
+                    <path
+                      d="M2676 3161 c-22 -25 -31 -109 -14 -141 17 -32 66 -40 85 -14 21 28
+17 137 -5 157 -24 22 -45 21 -66 -2z"
+                    />
+                    <path
+                      d="M3320 3160 c-56 -14 -211 -70 -262 -96 -58 -29 -93 -71 -77 -91 16
+-19 77 -9 209 33 174 55 229 65 332 59 111 -7 130 0 104 40 -29 44 -89 65
+-186 64 -47 -1 -101 -5 -120 -9z"
+                    />
+                    <path
+                      d="M1561 3049 c-122 -24 -249 -79 -312 -136 -51 -46 -49 -71 9 -99 l42
+-20 -25 -24 c-28 -26 -32 -57 -11 -85 17 -24 70 -24 116 0 32 16 34 16 109
+-18 122 -56 208 -70 379 -65 204 7 312 43 312 104 0 14 -10 30 -25 40 -30 19
+-104 16 -272 -12 -83 -14 -111 -14 -169 -5 -70 12 -284 99 -287 117 -2 15 78
+54 126 60 44 6 46 5 63 -27 48 -93 96 -129 173 -129 47 0 55 4 116 55 35 30
+70 55 76 55 7 0 34 -13 60 -30 109 -67 178 -78 226 -36 l28 25 -34 35 c-55 57
+-275 159 -411 191 -70 16 -217 18 -289 4z m233 -134 c6 -17 -2 -45 -14 -45
+-15 0 -32 30 -26 45 7 19 32 19 40 0z"
+                    />
+                    <path
+                      d="M3280 3012 c-30 -10 -88 -35 -128 -56 -41 -20 -111 -51 -155 -67 -99
+-37 -119 -53 -115 -93 l3 -31 75 1 c65 0 86 5 154 37 43 20 84 37 91 37 7 0
+30 -23 51 -52 45 -61 82 -75 165 -61 49 7 57 13 108 73 30 36 60 66 67 68 17
+4 136 -45 146 -61 12 -19 9 -27 -10 -27 -10 0 -72 -19 -137 -41 -158 -55 -217
+-59 -358 -25 -179 43 -247 33 -247 -34 0 -27 4 -30 68 -49 218 -64 347 -82
+442 -62 30 6 97 30 149 52 l95 41 43 -22 c49 -25 96 -29 118 -10 20 16 19 59
+-1 89 -16 22 -15 24 15 51 35 32 38 46 16 77 -19 27 -151 91 -285 138 -90 32
+-120 38 -210 41 -83 3 -116 0 -160 -14z m128 -140 c3 -16 -2 -22 -16 -22 -27
+0 -33 10 -21 32 13 24 33 19 37 -10z"
+                    />
+                    <path
+                      d="M2526 2758 c-3 -12 -15 -77 -26 -143 -11 -66 -32 -168 -47 -228 -14
+-59 -23 -110 -19 -114 13 -13 219 -16 250 -4 22 9 27 16 23 34 -32 148 -47
+241 -56 341 -6 65 -12 120 -13 121 -2 2 -26 6 -55 10 -49 6 -52 5 -57 -17z"
+                    />
+                    <path
+                      d="M2156 2314 c-3 -9 -6 -45 -6 -82 0 -77 22 -131 75 -182 32 -31 42
+-34 103 -38 85 -5 102 -19 102 -83 0 -86 73 -138 171 -123 66 11 89 38 96 112
+3 34 10 65 14 68 5 3 46 9 91 14 78 9 85 11 115 46 75 85 102 209 57 255 l-22
+21 -14 -23 c-95 -156 -119 -176 -225 -189 -64 -8 -70 -11 -108 -54 l-40 -46
+-34 41 c-39 47 -93 74 -168 84 -60 8 -73 20 -108 100 -15 33 -34 68 -42 78
+-20 21 -49 22 -57 1z"
+                    />
+                    <path
+                      d="M1708 2018 c-9 -18 -45 -66 -81 -106 -71 -80 -84 -113 -68 -184 11
+-49 49 -88 86 -88 29 0 46 24 70 99 19 60 45 91 75 91 11 0 95 -29 186 -65
+253 -101 390 -136 551 -142 208 -9 290 8 637 131 87 31 166 54 176 51 21 -7
+34 -32 63 -120 22 -69 23 -70 59 -73 32 -3 40 2 64 34 22 29 29 50 32 100 l4
+63 -49 53 c-28 29 -66 79 -86 111 -56 88 -86 80 -145 -39 -67 -133 -138 -160
+-449 -169 -117 -3 -226 -10 -243 -15 -21 -6 -38 -5 -57 5 -35 18 -89 24 -313
+34 -261 11 -302 31 -378 182 -36 72 -38 74 -77 77 -37 3 -42 0 -57 -30z"
+                    />
+                    <path
+                      d="M1761 1704 c-33 -42 -8 -72 96 -113 29 -11 106 -54 171 -95 239 -149
+341 -186 517 -186 171 0 333 54 639 213 154 80 187 109 168 152 -8 16 -20 25
+-35 25 -13 0 -111 -29 -218 -65 -249 -82 -361 -105 -519 -105 -164 0 -271 23
+-559 121 -129 43 -236 79 -237 79 -1 0 -12 -12 -23 -26z"
+                    />
+                  </g>
+              </svg>
+            </div>
+
+            <h1
+              class="text-xl font-black tracking-tight text-slate-800 leading-none"
+            >
+              Rummikub <span class="text-orange-600">Helper</span>
+            </h1>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div
+              id="gameStatusPill"
+              class="hidden px-2.5 py-1 rounded-full bg-orange-50 border border-orange-100 text-orange-700 text-xs font-black inline-flex items-center gap-1.5"
+              title="Partida em andamento"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v7.5a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z" />
+              </svg>
+              <span class="hidden sm:inline">Partida em andamento</span>
+              <span class="sm:hidden">Em jogo</span>
+            </div>
+
+            <!-- Botão Novo Jogo -->
+            <button
+              onclick="confirmReset()"
+              class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl active:scale-95 transition-all"
+              title="Novo Jogo"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="w-6 h-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Navegação por Abas -->
+        <div class="flex gap-6 mt-1">
+          <button
+            onclick="Actions.switchTab('game')"
+            id="nav-game"
+            class="nav-link active flex-1 text-center"
+          >
+            Pontuação
+          </button>
+          <button
+            onclick="Actions.switchTab('players')"
+            id="nav-players"
+            class="nav-link flex-1 text-center"
+          >
+            Jogadores
+          </button>
+          <button
+            onclick="Actions.switchTab('rules')"
+            id="nav-rules"
+            class="nav-link flex-1 text-center"
+          >
+            Regras
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. TIMER & RANKING (Fixo) -->
+    <div
+      id="stickyHeader"
+      class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm"
+    >
+      <div
+        id="timerContainer"
+        class="max-w-md mx-auto px-4 py-2 flex items-center justify-between border-b border-slate-100 transition-colors duration-300"
+      >
+        <div
+          class="flex items-center gap-2 cursor-pointer group"
+          onclick="Actions.openTimerSettings()"
+        >
+          <div
+            id="timerDisplay"
+            class="font-mono text-3xl font-black text-slate-700 w-[90px] tracking-tighter group-hover:text-orange-600"
+          >
+            02:00
+          </div>
+          <div
+            class="bg-slate-100 p-1.5 rounded-full text-slate-400 group-hover:bg-orange-100 group-hover:text-orange-500"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2.5"
+              stroke="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button
+            onclick="Timer.reset()"
+            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 active:bg-slate-300 font-bold"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2.5"
+              stroke="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+              />
+            </svg>
+          </button>
+          <button
+            id="btnToggleTimer"
+            onclick="Actions.toggleTimer()"
+            class="w-14 h-10 flex items-center justify-center rounded-xl bg-orange-600 text-white shadow-md active:scale-95"
+          >
+            <svg
+              id="iconPlay"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="3"
+              stroke="currentColor"
+              class="w-6 h-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
+              /></svg
+            ><svg
+              id="iconPause"
+              class="hidden w-6 h-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="3"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 5.25v13.5m-7.5-13.5v13.5"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="h-1 w-full bg-slate-100 overflow-hidden">
+        <div
+          id="timerProgress"
+          class="h-full bg-orange-500 w-full transition-all duration-1000 ease-linear origin-left"
+        ></div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div
+        id="leaderboardBar"
+        class="bg-yellow-50 border-b border-yellow-100 hidden"
+      >
+        <div class="max-w-md mx-auto w-full px-4 py-2">
+          <div
+            id="leaderboardHeader"
+            onclick="Actions.toggleLeaderboardOpen()"
+            class="flex items-center justify-between select-none cursor-pointer"
+            title="Mostrar/ocultar classificação"
+          >
+            <div class="text-[11px] font-black uppercase tracking-wide text-slate-600">
+              Classificação
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                id="leaderboardToggleBtn"
+                onclick="event.stopPropagation(); Actions.toggleLeaderboardExpanded()"
+                class="hidden p-1.5 rounded-lg bg-white/60 border border-yellow-100 text-slate-500 hover:bg-white"
+                title="Ver todos"
+              ></button>
+              <div
+                id="leaderboardChevron"
+                class="p-1.5 rounded-lg bg-white/40 border border-yellow-100 text-slate-500"
+                aria-hidden="true"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div id="leaderboardBody" class="hidden mt-2">
+            <div
+              id="leaderboardList"
+              class="flex gap-2 overflow-x-auto hide-scrollbar py-0.5"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 overflow-y-auto px-4 py-4 pb-48">
+      <div class="max-w-md mx-auto">
+        <!-- === ABA PONTUAÇÃO === -->
+        <div id="tab-game">
+          <!-- Adicionar Jogador -->
+          <div
+            id="addPlayerSection"
+            class="flex gap-2 mb-6 fade-in-down transition-all duration-300"
+          >
+            <div class="relative flex-1">
+              <div
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  class="w-5 h-5 text-slate-400"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="text"
+                id="newPlayerName"
+                class="block w-full pl-10 p-3.5 bg-white border border-slate-200 rounded-xl text-base font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                placeholder="Nome do jogador..."
+                onkeypress="Actions.handleEnter(event)"
+              />
+            </div>
+            <button
+              onclick="Actions.addPlayer()"
+              class="bg-slate-800 text-white px-5 rounded-xl font-bold shadow-md hover:bg-slate-700 active:scale-95 transition-all text-xl"
+            >
+              +
+            </button>
+          </div>
+
+          <!-- Tabela -->
+          <div
+            class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative"
+          >
+            <div
+              id="emptyState"
+              class="flex flex-col items-center justify-center py-12 text-center"
+            >
+              <div class="bg-slate-50 p-6 rounded-full mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-10 h-10 text-slate-300"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                  />
+                </svg>
+              </div>
+              <h3 class="font-bold text-slate-800 text-lg">Mesa Vazia</h3>
+              <p class="text-sm text-slate-500 mt-1 max-w-[200px]">
+                Adicione os jogadores acima para iniciar.
+              </p>
+            </div>
+            <div
+              id="tableContainer"
+              class="overflow-x-auto hide-scrollbar hidden"
+            >
+              <table
+                class="w-full text-sm text-left text-slate-500"
+                id="scoreTable"
+              >
+                <thead
+                  class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200"
+                >
+                  <tr id="headerRow">
+                    <th
+                      class="py-3 px-2 w-[50px] sticky left-0 z-20 bg-slate-50 border-r border-slate-200 text-center font-bold"
+                    >
+                      #
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+                <tfoot
+                  class="bg-slate-800 text-white border-t-2 border-orange-500"
+                >
+                  <tr id="totalRow">
+                    <td
+                      class="py-4 px-2 sticky left-0 z-20 bg-slate-900 border-r border-slate-700 text-center font-bold text-xs uppercase tracking-wider"
+                    >
+                      Total
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <button
+            id="smartActionBtn"
+            onclick="Actions.handleSmartAction()"
+            class="hidden w-full mt-6 bg-slate-900 text-white hover:bg-slate-800 font-bold py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-xl shadow-slate-200 group"
+          >
+            <div
+              class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="w-5 h-5 text-orange-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <span class="text-lg">Concluir Rodada</span>
+          </button>
+        </div>
+
+        <!-- === ABA JOGADORES === -->
+        <div id="tab-players" class="hidden">
+          <div
+            class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+          >
+            <div class="p-4 border-b border-slate-100">
+              <h2 class="text-lg font-black text-slate-800">Jogadores</h2>
+              <p class="text-sm text-slate-500 mt-1">
+                Renomeie a qualquer momento. Remover só antes de iniciar a 1ª
+                rodada.
+              </p>
+            </div>
+
+            <!-- Adicionar Jogador (aba Jogadores) -->
+            <div id="addPlayerSectionPlayersWrap" class="p-4 border-b border-slate-100">
+              <div id="addPlayerSectionPlayers" class="flex gap-2">
+                <div class="relative flex-1">
+                  <div
+                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="w-5 h-5 text-slate-400"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    id="newPlayerNamePlayers"
+                    class="block w-full pl-10 p-3.5 bg-white border border-slate-200 rounded-xl text-base font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                    placeholder="Nome do jogador..."
+                    onkeypress="Actions.handleEnterFrom(event, 'newPlayerNamePlayers')"
+                  />
+                </div>
+                <button
+                  onclick="Actions.addPlayerFrom('newPlayerNamePlayers')"
+                  class="bg-slate-800 text-white px-5 rounded-xl font-bold shadow-md hover:bg-slate-700 active:scale-95 transition-all text-xl"
+                >
+                  +
+                </button>
+              </div>
+
+            </div>
+
+            <div id="playersManager" class="p-4 space-y-3"></div>
+          </div>
+        </div>
+
+        <!-- === ABA REGRAS === -->
+        <div id="tab-rules" class="hidden">
+          <div
+            class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-none"
+          >
+            <h2 class="text-xl font-black text-slate-800 mb-4 border-b pb-2">
+              Regras Oficiais
+            </h2>
+
+            <div class="space-y-3">
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    1
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">Componentes e Objetivo</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <p class="text-sm text-slate-600">
+                    O jogo é composto por 104 pedras numeradas de 1 a 13,
+                    divididas em quatro cores (preto, laranja, azul e
+                    vermelho), além de 2 pedras-curinga e 4 suportes para os
+                    jogadores. O objetivo principal é ser o primeiro jogador a
+                    baixar todas as pedras do seu suporte na mesa.
+                  </p>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    2
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">Preparação e Início</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+                    <li>
+                      <strong>Distribuição:</strong> As pedras são misturadas
+                      com a face para baixo. Cada jogador retira uma pedra para
+                      decidir quem começa (o número mais alto vence; o curinga
+                      não conta).
+                    </li>
+                    <li>
+                      Cada jogador começa com <strong>14 pedras</strong> em seu
+                      suporte. As pedras restantes formam um monte de compra.
+                    </li>
+                  </ul>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    3
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">Séries Válidas</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <p class="text-sm text-slate-600">
+                    As pedras devem ser organizadas em “séries”, que podem ser
+                    de dois tipos:
+                  </p>
+                  <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc list-inside">
+                    <li>
+                      <strong>O Grupo:</strong> Formado por 3 ou 4 pedras de
+                      mesmo número, mas todas de cores diferentes.
+                    </li>
+                    <li>
+                      <strong>A Seqüência:</strong> Formada por 3 ou mais pedras
+                      de mesma cor em sucessão numérica.
+                      <div
+                        class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <div class="text-xs font-black text-slate-700 uppercase">
+                          Observação
+                        </div>
+                        <div class="text-sm text-slate-600 mt-1">
+                          A pedra 1 é a menor e não pode ser colocada após a
+                          pedra 13.
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-black shrink-0"
+                  >
+                    4
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">A “Abertura” (Primeira Jogada)</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <p class="text-sm text-slate-600">
+                    Para entrar no jogo, o participante deve baixar uma ou mais
+                    séries do seu suporte que somem, no mínimo,
+                    <strong>30 pontos</strong>.
+                  </p>
+                  <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc list-inside">
+                    <li>
+                      Nesta fase, o curinga vale o número da pedra que está
+                      substituindo.
+                    </li>
+                    <li>
+                      <strong>Regra crucial:</strong> Durante a abertura, o
+                      jogador deve usar apenas pedras do seu próprio suporte,
+                      não sendo permitido “pegar carona” em jogos que já estejam
+                      na mesa.
+                    </li>
+                    <li>
+                      Se não conseguir atingir os 30 pontos, o jogador deve
+                      comprar uma pedra e passar a vez.
+                    </li>
+                  </ul>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    5
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">Desenvolvimento do Jogo e Manobras</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <p class="text-sm text-slate-600">
+                    Após a abertura, o jogador pode “participar da mesa”,
+                    adicionando pedras a séries existentes ou reorganizando-as
+                    (manobrar) para baixar pedras de seu suporte.
+                  </p>
+
+                  <div class="grid grid-cols-1 gap-3 mt-3">
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <div class="text-xs font-black text-blue-900 uppercase">
+                        Tempo & Penalidades
+                      </div>
+                      <div class="text-sm text-blue-800 mt-1">
+                        Cada jogador tem 1 minuto para realizar sua jogada. Se
+                        estourar, deve retornar as pedras à posição original e
+                        comprar 3 pedras.
+                      </div>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div class="text-xs font-black text-slate-700 uppercase">
+                        Regra de Manobra
+                      </div>
+                      <div class="text-sm text-slate-600 mt-1">
+                        Só é permitido mexer na mesa se o jogador baixar pelo
+                        menos uma peça do seu suporte.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <div class="text-sm font-black text-slate-800">
+                      Exemplos de Manobras Permitidas
+                    </div>
+                    <ol class="text-sm text-slate-600 mt-2 space-y-2 list-decimal list-inside">
+                      <li>
+                        <strong>Adição:</strong> Colocar pedras do suporte em
+                        sequências ou grupos existentes.
+                      </li>
+                      <li>
+                        <strong>Divisão:</strong> Quebrar uma sequência longa
+                        para inserir uma pedra no meio e formar duas novas
+                        séries.
+                      </li>
+                      <li>
+                        <strong>Substituição:</strong> Retirar a quarta pedra de
+                        um grupo (que continuará válido com três) para usá-la em
+                        uma nova série com pedras do suporte.
+                      </li>
+                      <li>
+                        <strong>Divisão Combinada ou Múltipla:</strong>
+                        Reorganizar diversas séries simultaneamente para criar
+                        novas combinações.
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div class="text-sm text-slate-600 mt-3">
+                    As séries na mesa não têm dono e pertencem a todos os
+                    jogadores.
+                  </div>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    6
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">O Curinga</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <p class="text-sm text-slate-600">
+                    O curinga é a peça mais versátil, pois substitui qualquer
+                    cor ou número.
+                  </p>
+                  <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc list-inside">
+                    <li>
+                      <strong>Substituição:</strong> Qualquer jogador pode
+                      substituir um curinga da mesa por uma pedra do seu suporte
+                      que seja exatamente a que o curinga representa.
+                    </li>
+                    <li>
+                      <strong>Uso imediato:</strong> Um curinga retirado da mesa
+                      deve ser usado obrigatoriamente na mesma jogada.
+                    </li>
+                    <li>
+                      <strong>Penalidade:</strong> Não é permitido guardar um
+                      curinga no suporte se ele for retirado da mesa. Se o jogo
+                      terminar e você ainda tiver um curinga no suporte,
+                      perderá 30 pontos.
+                    </li>
+                  </ul>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    7
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">Fim da Partida e Pontuação</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <p class="text-sm text-slate-600">
+                    A partida termina quando um jogador esvazia o suporte e diz
+                    “Rummikub”.
+                  </p>
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 mt-3">
+                    <div class="text-xs font-black text-slate-700 uppercase">
+                      Como calcular
+                    </div>
+                    <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc list-inside">
+                      <li>
+                        <strong>Cálculo dos Perdedores:</strong> Cada perdedor
+                        soma o valor nominal das pedras que restaram em seu
+                        suporte (1 vale 1 ponto, 2 vale 2, etc.). O curinga vale
+                        30 pontos. O resultado é anotado como pontuação
+                        negativa.
+                      </li>
+                      <li>
+                        <strong>Cálculo do Vencedor:</strong> O vencedor recebe
+                        uma pontuação positiva igual à soma de todos os pontos
+                        negativos dos perdedores.
+                      </li>
+                      <li>
+                        <strong>Caso de Empate:</strong> Se o monte de compra
+                        acabar e ninguém vencer, o jogador com a menor soma de
+                        pontos no suporte ganha a partida.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+
+              <details class="group rounded-2xl border border-slate-200 bg-white">
+                <summary
+                  class="cursor-pointer select-none p-4 flex items-start gap-3 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-2xl"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black shrink-0"
+                  >
+                    8
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-black text-slate-800">Estratégias Recomendadas</div>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">
+                      Clique para expandir
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-5 h-5 text-slate-400 shrink-0 mt-2 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </summary>
+                <div class="px-4 pb-4">
+                  <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+                    <li>
+                      No início, o jogo pode ser lento, mas ganha velocidade
+                      conforme a mesa aumenta.
+                    </li>
+                    <li>
+                      <strong>Segurar jogadas:</strong> Às vezes é estratégico
+                      guardar uma quarta pedra de um grupo ou sequência para
+                      evitar que os adversários tenham mais opções de manobra
+                      ou para garantir uma jogada futura sem precisar comprar
+                      do monte.
+                    </li>
+                    <li>
+                      <strong>Risco do Curinga:</strong> Embora útil, manter o
+                      curinga no suporte por muito tempo é arriscado devido à
+                      penalidade de 30 pontos caso outro jogador vença
+                      repentinamente.
+                    </li>
+                  </ul>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODAIS GERAIS -->
+
+    <!-- 1. GENERIC CONFIRMATION MODAL -->
+    <div
+      id="confirmModal"
+      class="hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content text-center"
+      >
+        <h3 id="confirmTitle" class="text-lg font-black text-slate-800 mb-2">
+          Tem certeza?
+        </h3>
+        <p id="confirmMsg" class="text-slate-500 text-sm mb-6">
+          Essa ação não pode ser desfeita.
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick="closeConfirm()"
+            class="flex-1 py-3 text-slate-600 font-bold bg-slate-100 rounded-xl hover:bg-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            id="confirmBtnAction"
+            class="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-slate-800"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ERROR MODAL -->
+    <div
+      id="errorModal"
+      class="hidden fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content"
+      >
+        <div class="text-center mb-6">
+          <div
+            class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-8 h-8 text-red-600"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+          <h3 class="text-xl font-black text-slate-800">Atenção!</h3>
+          <div
+            id="errorModalMsg"
+            class="text-slate-600 mt-4 text-sm leading-relaxed"
+          ></div>
+        </div>
+        <button
+          onclick="document.getElementById('errorModal').classList.add('hidden')"
+          class="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg"
+        >
+          Entendi
+        </button>
+      </div>
+    </div>
+
+    <!-- 2.1 TILE CALC MODAL (SOBRA NEGATIVA) -->
+    <div
+      id="tileCalcModal"
+      class="hidden fixed inset-0 z-[85] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-4 sm:p-6 modal-content flex flex-col max-h-[85vh]"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 id="tileCalcTitle" class="text-lg font-black text-slate-800">
+              Resultado da rodada
+            </h3>
+            <div class="mt-1 inline-flex items-center gap-2 text-xs font-black rounded-full px-2 py-1 bg-orange-50 text-orange-700">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="w-4 h-4 text-orange-500"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 2a8 8 0 100 16 8 8 0 000-16zM8.5 6.75a.75.75 0 011.5 0v3.19l2.03 2.03a.75.75 0 11-1.06 1.06L8.72 10.78A.75.75 0 018.5 10V6.75z"
+                />
+              </svg>
+              <span id="tileCalcSubtitle">Use + / −</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              id="tileCalcWinnerBtn"
+              onclick="TileCalc.toggleWinner()"
+              class="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 active:scale-95 transition-all"
+              aria-label="Marcar como vencedor"
+              title="Marcar como vencedor"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="w-5 h-5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z"
+                />
+                <path
+                  d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"
+                />
+              </svg>
+            </button>
+            <button
+              onclick="TileCalc.close()"
+              class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl active:scale-95 transition-all"
+              aria-label="Fechar"
+              title="Fechar"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
+          <div id="tileCalcGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+        </div>
+
+        <div
+          id="tileCalcWinnerNotice"
+          class="hidden mt-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3"
+        >
+          <div class="flex items-start gap-2">
+            <div class="w-9 h-9 rounded-xl bg-white border border-yellow-200 flex items-center justify-center text-yellow-800 shrink-0">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="w-5 h-5"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z"
+                />
+                <path
+                  d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"
+                />
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <div class="text-sm font-black text-yellow-900">Vencedor selecionado</div>
+              <div class="text-xs font-bold text-yellow-800 mt-0.5">
+                A pontuação do vencedor será calculada automaticamente. Clique em
+                <strong>Aplicar</strong> para salvar.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  class="w-5 h-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6z"
+                  />
+                  <path
+                    d="M7 6a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"
+                  />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <div id="tileCalcTotalLabel" class="text-sm font-black text-slate-700">Total</div>
+                <div id="tileCalcTotalDesc" class="text-xs text-slate-500">Lançado negativo</div>
+              </div>
+            </div>
+            <div
+              id="tileCalcTotal"
+              class="text-2xl font-black text-rose-600 tabular-nums"
+            >
+              0
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-3">
+          <button
+            onclick="TileCalc.close()"
+            class="flex-1 py-3 text-slate-700 font-black bg-slate-100 rounded-xl hover:bg-slate-200 inline-flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              class="w-5 h-5"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <span>Cancelar</span>
+          </button>
+          <button
+            onclick="TileCalc.apply()"
+            id="tileCalcApplyBtn"
+            class="flex-1 py-3 bg-slate-100 text-slate-700 font-black rounded-xl shadow-lg hover:bg-slate-200 inline-flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              class="w-5 h-5"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.704 5.29a1 1 0 010 1.415l-7.25 7.25a1 1 0 01-1.415 0l-3.25-3.25a1 1 0 011.415-1.414l2.542 2.542 6.543-6.543a1 1 0 011.415 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <span>Aplicar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TIMER MODAL -->
+    <div
+      id="timerModal"
+      class="hidden fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content"
+      >
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Configurar Timer</h3>
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <button
+            onclick="Actions.setTempDuration(2)"
+            class="py-2 border rounded-lg hover:bg-orange-50 font-bold text-slate-600"
+          >
+            2min
+          </button>
+          <button
+            onclick="Actions.setTempDuration(3)"
+            class="py-2 border rounded-lg hover:bg-orange-50 font-bold text-slate-600"
+          >
+            3min
+          </button>
+          <button
+            onclick="Actions.setTempDuration(5)"
+            class="py-2 border rounded-lg hover:bg-orange-50 font-bold text-slate-600"
+          >
+            5min
+          </button>
+        </div>
+        <input
+          type="number"
+          id="customDuration"
+          class="w-full border border-slate-300 rounded-xl p-3 text-center text-lg font-bold mb-6 outline-none focus:ring-2 focus:ring-orange-500"
+          placeholder="Minutos (2 a 59)"
+        />
+        <div
+          class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-6"
+        >
+          <span class="text-sm font-bold text-slate-700">Som Ativado</span
+          ><input
+            type="checkbox"
+            id="soundToggle"
+            class="w-6 h-6 accent-orange-600 rounded"
+          />
+        </div>
+        <div class="flex gap-3">
+          <button
+            onclick="Actions.closeTimerSettings()"
+            class="flex-1 py-3 text-slate-500 font-bold"
+          >
+            Cancelar</button
+          ><button
+            onclick="Actions.saveTimerSettings()"
+            class="flex-1 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. DIALOG CONFIRMAÇÃO VENCEDOR -->
+    <div
+      id="winnerModal"
+      class="hidden fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content"
+      >
+        <div class="text-center mb-6">
+          <div
+            class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"
+          >
+            🏆
+          </div>
+          <h3 class="text-xl font-black text-slate-800">Confirmar Vencedor?</h3>
+          <p class="text-slate-500 mt-2 text-sm">
+            O sistema calculou a pontuação para equilibrar a rodada.
+          </p>
+        </div>
+        <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm font-bold text-slate-500 uppercase"
+              >Jogador</span
+            ><span class="text-sm font-bold text-slate-500 uppercase"
+              >Pontos</span
+            >
+          </div>
+          <div class="flex justify-between items-center">
+            <span id="modalWinnerName" class="text-lg font-bold text-slate-800"
+              >Nome</span
+            ><span
+              id="modalWinnerScore"
+              class="text-2xl font-black text-emerald-600"
+              >+0</span
+            >
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button
+            onclick="closeWinnerModal()"
+            class="flex-1 py-3.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onclick="confirmWinner()"
+            class="flex-1 py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-slate-800 active:scale-95"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. RESULTADO FINAL (FIM DE JOGO) -->
+    <div
+      id="gameOverModal"
+      class="hidden fixed inset-0 z-[95] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 modal-content"
+      >
+        <div class="relative text-center mb-4">
+          <div class="absolute inset-x-0 -top-2 flex justify-center">
+            <div class="relative w-24 h-10">
+              <span class="absolute left-2 top-2 w-2 h-2 rounded-full bg-yellow-300/70 animate-ping"></span>
+              <span class="absolute left-10 top-0 w-2 h-2 rounded-full bg-orange-300/70 animate-ping" style="animation-delay:120ms"></span>
+              <span class="absolute right-3 top-3 w-2 h-2 rounded-full bg-emerald-300/70 animate-ping" style="animation-delay:240ms"></span>
+            </div>
+          </div>
+
+          <div
+            class="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-8 h-8 animate-bounce" aria-hidden="true">
+              <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" />
+              <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" />
+            </svg>
+          </div>
+
+          <h3 id="gameOverTitle" class="text-xl font-black text-slate-800">
+            Jogo finalizado!
+          </h3>
+          <p id="gameOverSubtitle" class="text-slate-500 mt-1 text-sm">
+            Confira a classificação final.
+          </p>
+        </div>
+
+        <div
+          class="bg-slate-50 rounded-xl p-3 border border-slate-200 max-h-64 overflow-y-auto"
+        >
+          <div id="gameOverRanking" class="space-y-2"></div>
+        </div>
+
+        <div class="flex gap-3 mt-5">
+          <button
+            onclick="closeGameOverModal()"
+            class="flex-1 py-3 text-slate-600 font-bold bg-slate-100 rounded-xl hover:bg-slate-200"
+          >
+            Fechar
+          </button>
+          <button
+            onclick="restartFromGameOver()"
+            class="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-slate-800"
+          >
+            Novo jogo
+          </button>
+        </div>
+
+        <p class="text-[11px] text-slate-400 mt-3 text-center">
+          Ao iniciar um novo jogo, os dados desta partida serão perdidos.
+        </p>
+      </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+      const GameLimits = {
+        MIN_PLAYERS: 2,
+        MAX_PLAYERS: 6,
+      };
+
+      // === STATE MANAGEMENT ===
+      const State = {
+        game: {
+          players: [],
+          rounds: [],
+          currIdx: 0,
+          editingIdx: null,
+          locked: false,
+          started: false,
+          tileDetails: {},
+          roundWinners: {},
+        },
+        timer: { d: 120, c: 120, r: false, i: null, s: true },
+
+        init() {
+          const sGame = localStorage.getItem("rummi_v7_game");
+          if (sGame) this.game = JSON.parse(sGame);
+          // Ensure valid state
+          if (typeof this.game.currIdx === "undefined") this.game.currIdx = 0;
+          if (typeof this.game.editingIdx === "undefined")
+            this.game.editingIdx = null;
+          if (typeof this.game.locked === "undefined") this.game.locked = false;
+          if (
+            typeof this.game.tileDetails === "undefined" ||
+            this.game.tileDetails === null ||
+            typeof this.game.tileDetails !== "object" ||
+            Array.isArray(this.game.tileDetails)
+          ) {
+            this.game.tileDetails = {};
+          }
+          if (
+            typeof this.game.roundWinners === "undefined" ||
+            this.game.roundWinners === null ||
+            typeof this.game.roundWinners !== "object" ||
+            Array.isArray(this.game.roundWinners)
+          ) {
+            this.game.roundWinners = {};
+          }
+          if (typeof this.game.started === "undefined") {
+            const inferredStarted =
+              this.game.locked === true ||
+              (Array.isArray(this.game.rounds) &&
+                this.game.rounds.length > 0 &&
+                (this.game.currIdx > 0 ||
+                  this.game.rounds[0].some(
+                    (val) => val !== "" && val !== null
+                  )));
+            this.game.started = inferredStarted;
+            if (inferredStarted) this.game.locked = true;
+          }
+
+          const sTimer = localStorage.getItem("rummi_v7_timer");
+          if (sTimer) {
+            const p = JSON.parse(sTimer);
+            const rawSeconds = typeof p.d === "number" ? p.d : 120;
+            const minutes = Math.round(rawSeconds / 60);
+            const clampedMinutes = Math.min(59, Math.max(2, minutes || 2));
+            this.timer.d = clampedMinutes * 60;
+            this.timer.s = p.s !== false;
+            this.timer.c = this.timer.d;
+          } else {
+            this.timer.d = 120;
+            this.timer.c = 120;
+          }
+        },
+        save() {
+          localStorage.setItem("rummi_v7_game", JSON.stringify(this.game));
+        },
+        saveTimer() {
+          localStorage.setItem(
+            "rummi_v7_timer",
+            JSON.stringify({ d: this.timer.d, s: this.timer.s })
+          );
+        },
+
+        isGameStarted() {
+          return this.game.started === true;
+        },
+
+        startGame() {
+          if (this.game.started === true) return;
+          this.game.started = true;
+          this.game.locked = true;
+          this.save();
+        },
+      };
+
+      // === UI STATE (não persistido) ===
+      const UI = {
+        editingPlayerIdx: null,
+        leaderboardExpanded: false,
+        leaderboardOpen: false,
+      };
+
+      // === SOUND ENGINE ===
+      const Sound = {
+        ctx: null,
+        init() {
+          if (!this.ctx)
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (this.ctx.state === "suspended") this.ctx.resume();
+        },
+        play(f, t, d) {
+          this.init();
+          const o = this.ctx.createOscillator(),
+            g = this.ctx.createGain();
+          o.type = t;
+          o.frequency.value = f;
+          g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + d);
+          o.connect(g);
+          g.connect(this.ctx.destination);
+          o.start();
+          o.stop(this.ctx.currentTime + d);
+        },
+        tick: () => Sound.play(800, "sine", 0.1),
+        alarm: () => {
+          Sound.init();
+          [0, 0.2, 0.4].forEach((t) =>
+            setTimeout(() => Sound.play(880, "square", 0.1), t * 1000)
+          );
+        },
+      };
+
+      // === TIMER LOGIC ===
+      const Timer = {
+        updateUI() {
+          const m = Math.floor(State.timer.c / 60)
+              .toString()
+              .padStart(2, "0"),
+            s = (State.timer.c % 60).toString().padStart(2, "0");
+          document.getElementById("timerDisplay").innerText = `${m}:${s}`;
+          const pct = (State.timer.c / State.timer.d) * 100;
+          document.getElementById("timerProgress").style.width = `${pct}%`;
+          const c = document.getElementById("timerContainer"),
+            b = document.getElementById("timerProgress");
+          if (State.timer.r && State.timer.c <= 15) {
+            c.classList.add("timer-critical");
+            b.classList.replace("bg-orange-500", "bg-red-600");
+          } else {
+            c.classList.remove("timer-critical");
+            b.classList.replace("bg-red-600", "bg-orange-500");
+          }
+        },
+        toggle() {
+          const p = document.getElementById("iconPlay"),
+            z = document.getElementById("iconPause"),
+            b = document.getElementById("btnToggleTimer");
+          if (State.timer.r) {
+            State.timer.r = false;
+            clearInterval(State.timer.i);
+            p.classList.remove("hidden");
+            z.classList.add("hidden");
+            b.classList.replace("bg-slate-800", "bg-orange-600");
+            document
+              .getElementById("timerContainer")
+              .classList.remove("timer-critical");
+          } else {
+            Sound.init();
+            if (State.timer.c <= 0) State.timer.c = State.timer.d;
+            State.timer.r = true;
+            p.classList.add("hidden");
+            z.classList.remove("hidden");
+            b.classList.replace("bg-orange-600", "bg-slate-800");
+            State.timer.i = setInterval(() => {
+              State.timer.c--;
+              Timer.updateUI();
+              if (State.timer.s && State.timer.c <= 10 && State.timer.c > 0)
+                State.timer.c % 2 === 0 ? Sound.tick() : null;
+              if (State.timer.c <= 0) {
+                Timer.reset();
+                if (State.timer.s) Sound.alarm();
+              }
+            }, 1000);
+          }
+        },
+        reset() {
+          State.timer.r = false;
+          clearInterval(State.timer.i);
+          State.timer.c = State.timer.d;
+          Timer.updateUI();
+          document.getElementById("iconPlay").classList.remove("hidden");
+          document.getElementById("iconPause").classList.add("hidden");
+          document
+            .getElementById("btnToggleTimer")
+            .classList.replace("bg-slate-800", "bg-orange-600");
+          document
+            .getElementById("timerContainer")
+            .classList.remove("timer-critical");
+        },
+      };
+
+      // === ACTIONS & UTILS ===
+      const TileCalc = {
+        target: null,
+        pendingWinner: null,
+        roundWinnerAtOpen: null,
+        counts: new Array(14).fill(0),
+        values: (() => {
+          const arr = [];
+          for (let i = 1; i <= 13; i++) arr.push(i);
+          arr.push(30); // curinga
+          return arr;
+        })(),
+
+        open(rIdx, pIdx) {
+          this.target = { rIdx, pIdx };
+
+          const w = State.game.roundWinners ? State.game.roundWinners[rIdx] : null;
+          this.roundWinnerAtOpen = typeof w === "number" ? w : null;
+          this.pendingWinner = this.roundWinnerAtOpen === pIdx;
+
+          const key = `${rIdx}-${pIdx}`;
+          const saved = State.game.tileDetails ? State.game.tileDetails[key] : null;
+          if (Array.isArray(saved) && saved.length === 14) {
+            this.counts = saved.map((n) => (typeof n === "number" ? n : 0));
+          } else {
+            this.counts = new Array(14).fill(0);
+          }
+          this.render();
+          for (let i = 0; i < 14; i++) this.updateTileCount(i);
+          this.updateTotal();
+          this.updateHeader();
+          document.getElementById("tileCalcModal").classList.remove("hidden");
+          if (document.activeElement && document.activeElement.blur)
+            document.activeElement.blur();
+        },
+
+        close() {
+          document.getElementById("tileCalcModal").classList.add("hidden");
+          this.target = null;
+          this.pendingWinner = null;
+          this.roundWinnerAtOpen = null;
+        },
+
+        isWinnerTarget() {
+          if (!this.target) return false;
+          if (typeof this.pendingWinner === "boolean") return this.pendingWinner;
+          const { rIdx, pIdx } = this.target;
+          const w = State.game.roundWinners ? State.game.roundWinners[rIdx] : null;
+          return typeof w === "number" && w === pIdx;
+        },
+
+        updateHeader() {
+          if (!this.target) return;
+          const { rIdx, pIdx } = this.target;
+
+          const titleEl = document.getElementById("tileCalcTitle");
+          if (titleEl) titleEl.textContent = `Resultado da rodada ${rIdx + 1}`;
+
+          const subtitleEl = document.getElementById("tileCalcSubtitle");
+          if (subtitleEl) subtitleEl.textContent = State.game.players[pIdx] || "";
+
+          const winnerBtn = document.getElementById("tileCalcWinnerBtn");
+          const isWinner = this.isWinnerTarget();
+          if (winnerBtn) {
+            winnerBtn.className =
+              "p-2 rounded-xl border active:scale-95 transition-all " +
+              (isWinner
+                ? "border-yellow-300 bg-yellow-100 text-yellow-800"
+                : "border-yellow-200 text-slate-600 hover:text-yellow-900 hover:bg-yellow-50");
+            winnerBtn.title = isWinner ? "Vencedor" : "Marcar como vencedor";
+            winnerBtn.setAttribute(
+              "aria-label",
+              isWinner ? "Vencedor" : "Marcar como vencedor"
+            );
+          }
+
+          const notice = document.getElementById("tileCalcWinnerNotice");
+          if (notice) notice.classList.toggle("hidden", !isWinner);
+
+          const totalLabel = document.getElementById("tileCalcTotalLabel");
+          if (totalLabel) totalLabel.textContent = isWinner ? "Vencedor" : "Total";
+
+          const totalDesc = document.getElementById("tileCalcTotalDesc");
+          if (totalDesc)
+            totalDesc.textContent = isWinner
+              ? "Pontuação automática"
+              : "Lançado negativo";
+
+          const grid = document.getElementById("tileCalcGrid");
+          if (grid) {
+            grid.parentElement.classList.toggle("hidden", isWinner);
+          }
+
+          this.updateApplyBtnStyle();
+        },
+
+        updateApplyBtnStyle() {
+          const applyBtn = document.getElementById("tileCalcApplyBtn");
+          if (!applyBtn) return;
+
+          applyBtn.disabled = false;
+          const anySelected = Array.isArray(this.counts)
+            ? this.counts.some((n) => (n || 0) > 0)
+            : false;
+
+          const winnerSelected = this.isWinnerTarget();
+
+          applyBtn.className =
+            "flex-1 py-3 rounded-xl shadow-lg inline-flex items-center justify-center gap-2 font-black " +
+            (anySelected || winnerSelected
+              ? "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200");
+        },
+
+        toggleWinner() {
+          if (!this.target) return;
+          this.pendingWinner = !this.isWinnerTarget();
+          this.updateHeader();
+        },
+
+        inc(i) {
+          if (typeof this.counts[i] !== "number") this.counts[i] = 0;
+          this.counts[i] = Math.min(99, this.counts[i] + 1);
+          this.updateTileCount(i);
+          this.updateTotal();
+        },
+
+        dec(i) {
+          if (typeof this.counts[i] !== "number") this.counts[i] = 0;
+          this.counts[i] = Math.max(0, this.counts[i] - 1);
+          this.updateTileCount(i);
+          this.updateTotal();
+        },
+
+        sum() {
+          let s = 0;
+          for (let i = 0; i < this.counts.length; i++) {
+            const c = this.counts[i] || 0;
+            s += c * this.values[i];
+          }
+          return s;
+        },
+
+        total() {
+          const s = this.sum();
+          return -s;
+        },
+
+        updateTotal() {
+          const el = document.getElementById("tileCalcTotal");
+          if (!el) return;
+          if (this.isWinnerTarget()) {
+            el.textContent = "Auto";
+            el.className = "text-2xl font-black tabular-nums text-yellow-800";
+            this.updateApplyBtnStyle();
+            return;
+          }
+
+          const total = this.total();
+          el.textContent = total > 0 ? `+${total}` : `${total}`;
+          el.className =
+            "text-2xl font-black tabular-nums " +
+            (total < 0
+              ? "text-rose-600"
+              : total > 0
+              ? "text-emerald-600"
+              : "text-slate-600");
+
+          this.updateApplyBtnStyle();
+        },
+
+        updateTileCount(i) {
+          const el = document.getElementById(`tileCount-${i}`);
+          if (!el) return;
+          const count = this.counts[i] || 0;
+          el.textContent = count;
+
+          const isJoker = i === 13;
+          const selected = count > 0;
+
+          const card = document.getElementById(`tileCard-${i}`);
+          if (card) {
+            card.className =
+              "rounded-2xl border bg-white p-2 transition-colors " +
+              (selected ? "border-orange-200" : "border-slate-200");
+          }
+
+          const label = document.getElementById(`tileLabel-${i}`);
+          if (label) {
+            label.className =
+              "w-8 h-8 rounded-xl flex items-center justify-center transition-colors " +
+              (selected
+                ? "bg-orange-500 text-white"
+                : "bg-slate-100 text-slate-800") +
+              (isJoker ? "" : " font-black");
+          }
+
+          const badge = document.getElementById(`tileBadge-${i}`);
+          if (badge) {
+            badge.className =
+              "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-black shrink-0 transition-colors " +
+              (count > 0
+                ? "bg-orange-100 text-orange-800"
+                : "bg-slate-100 text-slate-700");
+          }
+
+          const decBtn = document.getElementById(`tileDec-${i}`);
+          if (decBtn) {
+            decBtn.className =
+              "flex-1 h-9 rounded-xl font-black active:scale-95 transition-colors " +
+              (selected
+                ? "bg-rose-100 text-rose-700 hover:bg-rose-200"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200");
+          }
+
+          const incBtn = document.getElementById(`tileInc-${i}`);
+          if (incBtn) {
+            incBtn.className =
+              "flex-1 h-9 rounded-xl font-black active:scale-95 transition-colors " +
+              (selected
+                ? "bg-orange-500 text-white hover:bg-orange-600"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200");
+          }
+        },
+
+        render() {
+          const grid = document.getElementById("tileCalcGrid");
+          if (!grid) return;
+          const jokerSvg = `
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 512 512"
+              preserveAspectRatio="xMidYMid meet"
+              class="w-5 h-5"
+              role="img"
+              aria-label="Curinga"
+            >
+              <g
+                transform="translate(0,512) scale(0.1,-0.1)"
+                fill="currentColor"
+                stroke="none"
+              >
+                <path
+                  d="M2330 4464 c-281 -50 -407 -88 -585 -174 -481 -232 -810 -650 -980 -1245 -46 -162 -58 -269 -52 -475 6 -192 14 -240 66 -416 94 -314 237 -569 450 -805 365 -402 921 -615 1491 -571 183 15 268 31 425 83 320 106 590 284 821 541 487 542 596 1340 275 2013 -103 216 -197 351 -360 519 -207 212 -433 354 -711 447 -214 71 -284 82 -565 84 -137 2 -261 1 -275 -1z m578 -253 c628 -139 1113 -632 1252 -1271 132 -603 -112 -1231 -630 -1622 -120 -90 -334 -201 -477 -247 -534 -172 -1124 -43 -1566 344 -285 249 -470 589 -528 970 -18 118 -15 352 5 465 34 197 118 437 202 582 113 196 290 396 451 511 197 140 446 239 712 282 129 21 457 13 579 -14z"
+                />
+                <path
+                  d="M1588 3417 c-73 -25 -151 -75 -230 -145 -83 -76 -99 -137 -40 -161 37 -15 63 -5 133 52 77 63 185 131 243 153 58 21 163 24 219 5 21 -7 71 -42 110 -78 136 -123 171 -140 241 -113 74 28 -11 163 -144 230 -113 57 -178 73 -325 77 -127 3 -146 1 -207 -20z"
+                />
+                <path
+                  d="M3270 3396 c-142 -33 -258 -85 -326 -148 -37 -34 -44 -47 -44 -78 0 -47 20 -65 74 -65 34 0 55 10 126 62 47 34 112 75 145 90 53 25 71 28 160 28 123 0 155 -15 265 -120 41 -39 86 -79 100 -88 32 -22 82 -22 110 1 19 15 21 24 15 52 -14 65 -156 190 -281 247 -52 24 -73 27 -174 30 -68 1 -138 -3 -170 -11z"
+                />
+                <path
+                  d="M1615 3191 c-11 -5 -31 -20 -43 -34 l-24 -25 25 -17 c17 -11 62 -19 149 -24 109 -8 136 -13 232 -50 88 -33 195 -60 239 -61 4 0 7 11 7 24 0 46 -72 92 -240 151 -92 33 -119 38 -215 41 -60 2 -119 0 -130 -5z"
+                />
+                <path
+                  d="M2455 3161 c-26 -29 -32 -113 -11 -146 33 -50 84 -17 92 60 8 84 -37 133 -81 86z"
+                />
+                <path
+                  d="M2676 3161 c-22 -25 -31 -109 -14 -141 17 -32 66 -40 85 -14 21 28 17 137 -5 157 -24 22 -45 21 -66 -2z"
+                />
+                <path
+                  d="M3320 3160 c-56 -14 -211 -70 -262 -96 -58 -29 -93 -71 -77 -91 16 -19 77 -9 209 33 174 55 229 65 332 59 111 -7 130 0 104 40 -29 44 -89 65 -186 64 -47 -1 -101 -5 -120 -9z"
+                />
+                <path
+                  d="M1561 3049 c-122 -24 -249 -79 -312 -136 -51 -46 -49 -71 9 -99 l42 -20 -25 -24 c-28 -26 -32 -57 -11 -85 17 -24 70 -24 116 0 32 16 34 16 109 -18 122 -56 208 -70 379 -65 204 7 312 43 312 104 0 14 -10 30 -25 40 -30 19 -104 16 -272 -12 -83 -14 -111 -14 -169 -5 -70 12 -284 99 -287 117 -2 15 78 54 126 60 44 6 46 5 63 -27 48 -93 96 -129 173 -129 47 0 55 4 116 55 35 30 70 55 76 55 7 0 34 -13 60 -30 109 -67 178 -78 226 -36 l28 25 -34 35 c-55 57 -275 159 -411 191 -70 16 -217 18 -289 4z m233 -134 c6 -17 -2 -45 -14 -45 -15 0 -32 30 -26 45 7 19 32 19 40 0z"
+                />
+                <path
+                  d="M3280 3012 c-30 -10 -88 -35 -128 -56 -41 -20 -111 -51 -155 -67 -99 -37 -119 -53 -115 -93 l3 -31 75 1 c65 0 86 5 154 37 43 20 84 37 91 37 7 0 30 -23 51 -52 45 -61 82 -75 165 -61 49 7 57 13 108 73 30 36 60 66 67 68 17 4 136 -45 146 -61 12 -19 9 -27 -10 -27 -10 0 -72 -19 -137 -41 -158 -55 -217 -59 -358 -25 -179 43 -247 33 -247 -34 0 -27 4 -30 68 -49 218 -64 347 -82 442 -62 30 6 97 30 149 52 l95 41 43 -22 c49 -25 96 -29 118 -10 20 16 19 59 -1 89 -16 22 -15 24 15 51 35 32 38 46 16 77 -19 27 -151 91 -285 138 -90 32 -120 38 -210 41 -83 3 -116 0 -160 -14z m128 -140 c3 -16 -2 -22 -16 -22 -27 0 -33 10 -21 32 13 24 33 19 37 -10z"
+                />
+                <path
+                  d="M2526 2758 c-3 -12 -15 -77 -26 -143 -11 -66 -32 -168 -47 -228 -14 -59 -23 -110 -19 -114 13 -13 219 -16 250 -4 22 9 27 16 23 34 -32 148 -47 241 -56 341 -6 65 -12 120 -13 121 -2 2 -26 6 -55 10 -49 6 -52 5 -57 -17z"
+                />
+                <path
+                  d="M2156 2314 c-3 -9 -6 -45 -6 -82 0 -77 22 -131 75 -182 32 -31 42 -34 103 -38 85 -5 102 -19 102 -83 0 -86 73 -138 171 -123 66 11 89 38 96 112 3 34 10 65 14 68 5 3 46 9 91 14 78 9 85 11 115 46 75 85 102 209 57 255 l-22 21 -14 -23 c-95 -156 -119 -176 -225 -189 -64 -8 -70 -11 -108 -54 l-40 -46 -34 41 c-39 47 -93 74 -168 84 -60 8 -73 20 -108 100 -15 33 -34 68 -42 78 -20 21 -49 22 -57 1z"
+                />
+                <path
+                  d="M1708 2018 c-9 -18 -45 -66 -81 -106 -71 -80 -84 -113 -68 -184 11 -49 49 -88 86 -88 29 0 46 24 70 99 19 60 45 91 75 91 11 0 95 -29 186 -65 253 -101 390 -136 551 -142 208 -9 290 8 637 131 87 31 166 54 176 51 21 -7 34 -32 63 -120 22 -69 23 -70 59 -73 32 -3 40 2 64 34 22 29 29 50 32 100 l4 63 -49 53 c-28 29 -66 79 -86 111 -56 88 -86 80 -145 -39 -67 -133 -138 -160 -449 -169 -117 -3 -226 -10 -243 -15 -21 -6 -38 -5 -57 5 -35 18 -89 24 -313 34 -261 11 -302 31 -378 182 -36 72 -38 74 -77 77 -37 3 -42 0 -57 -30z"
+                />
+                <path
+                  d="M1761 1704 c-33 -42 -8 -72 96 -113 29 -11 106 -54 171 -95 239 -149 341 -186 517 -186 171 0 333 54 639 213 154 80 187 109 168 152 -8 16 -20 25 -35 25 -13 0 -111 -29 -218 -65 -249 -82 -361 -105 -519 -105 -164 0 -271 23 -559 121 -129 43 -236 79 -237 79 -1 0 -12 -12 -23 -26z"
+                />
+              </g>
+            </svg>
+          `;
+
+          let html = "";
+          for (let i = 0; i < 14; i++) {
+            const isJoker = i === 13;
+            const label = isJoker
+              ? `<div class="flex items-center gap-2 min-w-0">
+                  <div id="tileLabel-${i}" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center transition-colors">
+                    ${jokerSvg}
+                  </div>
+                  <span class="font-black text-slate-800 text-sm truncate">Curinga</span>
+                </div>`
+              : `<div id="tileLabel-${i}" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black transition-colors">${i + 1}</div>`;
+            const sub = isJoker
+              ? `<div class="text-[11px] font-bold text-slate-500">30 pts</div>`
+              : `<div class="text-[11px] font-bold text-slate-500">${i + 1} pt${
+                  i + 1 === 1 ? "" : "s"
+                }</div>`;
+
+            html += `
+              <div id="tileCard-${i}" class="rounded-2xl border border-slate-200 bg-white p-2 transition-colors">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    ${label}
+                    ${sub}
+                  </div>
+                  <div id="tileBadge-${i}" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-black shrink-0 transition-colors">
+                    <span class="text-slate-500">x</span>
+                    <span id="tileCount-${i}" class="tabular-nums">0</span>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <button
+                    onclick="TileCalc.dec(${i})"
+                    id="tileDec-${i}"
+                    class="flex-1 h-9 rounded-xl bg-slate-100 text-slate-700 font-black hover:bg-slate-200 active:scale-95 transition-colors"
+                    aria-label="Diminuir"
+                    title="Diminuir"
+                  >
+                    −
+                  </button>
+                  <button
+                    id="addPlayerBtn"
+                    onclick="TileCalc.inc(${i})"
+                    id="tileInc-${i}"
+                    class="flex-1 h-9 rounded-xl bg-slate-100 text-slate-700 font-black hover:bg-slate-200 active:scale-95 transition-colors"
+                    aria-label="Aumentar"
+                    title="Aumentar"
+                  >
+                    +
+                  </button>
+                </div>
+                    id="addPlayerBtnPlayers"
+              </div>
+            `;
+          }
+
+          grid.innerHTML = html;
+        },
+
+        apply() {
+          if (!this.target) return;
+          const { rIdx, pIdx } = this.target;
+
+          const input = document.getElementById(`cell-${rIdx}-${pIdx}`);
+          if (!input) {
+            this.close();
+            return;
+          }
+
+          const currentWinner =
+            State.game.roundWinners && typeof State.game.roundWinners[rIdx] === "number"
+              ? State.game.roundWinners[rIdx]
+              : null;
+
+          // Se o usuário marcou como vencedor, só salva o vencedor ao clicar em Aplicar.
+          if (this.isWinnerTarget()) {
+            if (!State.game.roundWinners) State.game.roundWinners = {};
+
+            if (typeof currentWinner === "number" && currentWinner !== pIdx) {
+              const oldInput = document.getElementById(`cell-${rIdx}-${currentWinner}`);
+              if (oldInput) {
+                oldInput.value = "";
+                Actions.applyScoreValue(rIdx, currentWinner, oldInput, "", {
+                  skipRecalc: true,
+                });
+              } else {
+                State.game.rounds[rIdx][currentWinner] = "";
+              }
+            }
+
+            State.game.roundWinners[rIdx] = pIdx;
+
+            // Limpa pontuação/detalhes do vencedor para evitar valores antigos.
+            input.value = "0";
+            Actions.applyScoreValue(rIdx, pIdx, input, "0", {
+              skipRecalc: true,
+            });
+
+            State.save();
+            Actions.recalculateWinnerForRound(rIdx);
+            Render.totals();
+            Render.leaderboard();
+            this.close();
+            return;
+          }
+
+          // Se antes era vencedor e agora desmarcou, remove o vencedor ao clicar em Aplicar.
+          if (currentWinner === pIdx) {
+            delete State.game.roundWinners[rIdx];
+            input.value = "";
+            Actions.applyScoreValue(rIdx, pIdx, input, "", {
+              skipRecalc: true,
+            });
+          }
+
+          const total = this.total();
+          const val = total.toString();
+          input.value = val;
+          Actions.applyScoreValue(rIdx, pIdx, input, val, {
+            tileCounts: this.counts.slice(0, 14),
+          });
+          this.close();
+        },
+      };
+
+      const Actions = {
+        movePlayerUp(pIdx) {
+          this.movePlayer(pIdx, -1);
+        },
+
+        movePlayerDown(pIdx) {
+          this.movePlayer(pIdx, 1);
+        },
+
+        movePlayer(pIdx, delta) {
+          if (State.isGameStarted()) {
+            showError(
+              "A partida já começou. Para reordenar jogadores, reinicie o jogo."
+            );
+            return;
+          }
+
+          if (!Array.isArray(State.game.players)) return;
+          const from = Number(pIdx);
+          if (!Number.isInteger(from)) return;
+
+          const to = from + Number(delta);
+          if (!Number.isInteger(to)) return;
+          if (to < 0 || to >= State.game.players.length) return;
+          if (from === to) return;
+
+          // Troca na lista de jogadores
+          const tmpName = State.game.players[from];
+          State.game.players[from] = State.game.players[to];
+          State.game.players[to] = tmpName;
+
+          // Troca na matriz de rodadas (colunas)
+          if (Array.isArray(State.game.rounds)) {
+            State.game.rounds.forEach((row) => {
+              if (!Array.isArray(row)) return;
+              const tmp = row[from];
+              row[from] = row[to];
+              row[to] = tmp;
+            });
+          }
+
+          // Troca detalhes de pedras por célula
+          if (State.game.tileDetails && typeof State.game.tileDetails === "object") {
+            const td = State.game.tileDetails;
+            const roundsLen = Array.isArray(State.game.rounds)
+              ? State.game.rounds.length
+              : 0;
+            for (let r = 0; r < roundsLen; r++) {
+              const k1 = `${r}-${from}`;
+              const k2 = `${r}-${to}`;
+              const v1 = td[k1];
+              const v2 = td[k2];
+
+              if (typeof v1 === "undefined" && typeof v2 === "undefined") continue;
+              if (typeof v2 === "undefined") {
+                delete td[k1];
+                td[k2] = v1;
+                continue;
+              }
+              if (typeof v1 === "undefined") {
+                delete td[k2];
+                td[k1] = v2;
+                continue;
+              }
+
+              td[k1] = v2;
+              td[k2] = v1;
+            }
+          }
+
+          // Ajusta vencedores por rodada (índices)
+          if (State.game.roundWinners && typeof State.game.roundWinners === "object") {
+            const rw = State.game.roundWinners;
+            Object.keys(rw).forEach((rk) => {
+              const w = rw[rk];
+              if (w === from) rw[rk] = to;
+              else if (w === to) rw[rk] = from;
+            });
+          }
+
+          // Mantém consistência do estado de edição de jogador
+          if (typeof UI.editingPlayerIdx === "number") {
+            if (UI.editingPlayerIdx === from) UI.editingPlayerIdx = to;
+            else if (UI.editingPlayerIdx === to) UI.editingPlayerIdx = from;
+          }
+
+          State.save();
+          Render.all();
+        },
+
+        addPlayerFrom(inputId) {
+          const inp = document.getElementById(inputId);
+          if (!inp) return;
+
+          if (State.game.locked === true) {
+            showError(
+              "O jogo já começou. Não é possível adicionar participantes agora."
+            );
+            return;
+          }
+
+          if (State.game.players.length >= GameLimits.MAX_PLAYERS) {
+            showError(
+              `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido.`
+            );
+            return;
+          }
+
+          const name = inp.value.trim();
+          if (!name) return;
+
+          State.game.players.push(name);
+          // Expandir matriz
+          State.game.rounds.forEach((r) => r.push(""));
+          // Garantir rodadas = jogadores
+          while (State.game.rounds.length < State.game.players.length) {
+            State.game.rounds.push(
+              new Array(State.game.players.length).fill("")
+            );
+          }
+
+          inp.value = "";
+          State.save();
+          Render.all();
+        },
+
+        handleEnterFrom(e, inputId) {
+          if (e.key === "Enter") this.addPlayerFrom(inputId);
+        },
+
+        toggleTimer() {
+          // Pausar não precisa de confirmação
+          if (State.timer.r) {
+            Timer.toggle();
+            return;
+          }
+
+          // Se ainda não iniciou a 1ª rodada, confirmar o início antes de começar o timer
+          const canStart =
+            !State.isGameStarted() &&
+            State.game.players.length > 0 &&
+            State.game.currIdx === 0 &&
+            State.game.editingIdx === null;
+
+          if (canStart) {
+            showConfirm(
+              "Iniciar a 1ª rodada?",
+              "Ao iniciar, não será mais possível adicionar participantes e os campos serão liberados.",
+              () => {
+                State.startGame();
+                Render.updateAddPlayerState();
+                Timer.toggle();
+              }
+            );
+            return;
+          }
+
+          Timer.toggle();
+        },
+
+        startFirstRound() {
+          if (State.isGameStarted()) return;
+          if (State.game.players.length < GameLimits.MIN_PLAYERS) {
+            showError(
+              `Adicione pelo menos ${GameLimits.MIN_PLAYERS} jogadores para iniciar.`
+            );
+            return;
+          }
+          showConfirm(
+            "Iniciar a 1ª rodada?",
+            "Ao iniciar, não será mais possível adicionar participantes e os campos serão liberados.",
+            () => {
+              State.startGame();
+              Render.all();
+            }
+          );
+        },
+
+        beginEditPlayer(pIdx) {
+          UI.editingPlayerIdx = pIdx;
+          Render.playersManager();
+        },
+
+        cancelEditPlayer() {
+          UI.editingPlayerIdx = null;
+          Render.playersManager();
+        },
+
+        savePlayerName(pIdx) {
+          const el = document.getElementById(`playerNameInput-${pIdx}`);
+          if (!el) return;
+
+          const nextName = el.value.trim();
+          const prevName = (State.game.players[pIdx] || "").trim();
+
+          if (!nextName) {
+            showError("O nome não pode ficar vazio.");
+            el.value = prevName;
+            return;
+          }
+
+          if (nextName === prevName) {
+            UI.editingPlayerIdx = null;
+            Render.playersManager();
+            return;
+          }
+
+          showConfirm(
+            "Trocar nome do jogador?",
+            `De: ${prevName}\nPara: ${nextName}`,
+            () => {
+              State.game.players[pIdx] = nextName;
+              State.save();
+              UI.editingPlayerIdx = null;
+              Render.all();
+            }
+          );
+        },
+
+        removePlayer(pIdx) {
+          const name = State.game.players[pIdx];
+          if (!name) return;
+
+          if (State.isGameStarted()) {
+            showError(
+              "A partida já começou. Para remover jogadores, reinicie o jogo."
+            );
+            return;
+          }
+
+          if (State.game.players.length <= GameLimits.MIN_PLAYERS) {
+            showError(
+              `Mínimo de ${GameLimits.MIN_PLAYERS} jogadores. Para remover mais, reinicie o jogo.`
+            );
+            return;
+          }
+
+          showConfirm(
+            "Remover jogador?",
+            `Remover ${name}? Isso também ajusta a tabela de rodadas.`,
+            () => {
+              State.game.players.splice(pIdx, 1);
+
+              // Remove a coluna do jogador em todas as rodadas
+              State.game.rounds.forEach((row) => {
+                if (Array.isArray(row)) row.splice(pIdx, 1);
+              });
+
+              // Garante que o número de rodadas não exceda nº de jogadores
+              while (State.game.rounds.length > State.game.players.length) {
+                State.game.rounds.pop();
+              }
+
+              // Garante linhas com tamanho correto
+              State.game.rounds.forEach((row) => {
+                if (!Array.isArray(row)) return;
+                row.length = State.game.players.length;
+              });
+
+              UI.editingPlayerIdx = null;
+              State.save();
+              Render.all();
+            }
+          );
+        },
+
+        addPlayer() {
+          this.addPlayerFrom("newPlayerName");
+        },
+
+        handleEnter(e) {
+          if (e.key === "Enter") this.addPlayer();
+        },
+
+        toggleLeaderboardExpanded() {
+          UI.leaderboardExpanded = !UI.leaderboardExpanded;
+          Render.leaderboard();
+        },
+
+        toggleLeaderboardOpen() {
+          UI.leaderboardOpen = !UI.leaderboardOpen;
+          Render.leaderboard();
+        },
+
+        applyScoreValue(rIdx, pIdx, el, val, options = {}) {
+          State.game.rounds[rIdx][pIdx] = val;
+
+          const key = `${rIdx}-${pIdx}`;
+          if (!State.game.tileDetails) State.game.tileDetails = {};
+          if (Array.isArray(options.tileCounts) && options.tileCounts.length === 14) {
+            State.game.tileDetails[key] = options.tileCounts.map((n) =>
+              typeof n === "number" ? n : 0
+            );
+          } else {
+            delete State.game.tileDetails[key];
+          }
+
+          State.save();
+
+          const n = parseInt(val);
+          el.className = el.className.replace(/text-\w+-\d+/g, "");
+          if (isNaN(n)) el.classList.add("text-slate-800");
+          else if (n > 0) el.classList.add("text-emerald-600");
+          else if (n < 0) el.classList.add("text-rose-600");
+          else {
+            const w = State.game.roundWinners ? State.game.roundWinners[rIdx] : null;
+            if (typeof w === "number" && w === pIdx) el.classList.add("text-emerald-600");
+            else el.classList.add("text-slate-400");
+          }
+
+          // Update Totals but NOT validation dialog
+          Render.totals();
+          Render.leaderboard();
+          Render.updateAddPlayerState();
+
+          if (options.skipRecalc !== true) {
+            this.recalculateWinnerForRound(rIdx, pIdx);
+          }
+        },
+
+        recalculateWinnerForRound(rIdx, changedPIdx) {
+          if (!State.game.roundWinners) return;
+          const winner = State.game.roundWinners[rIdx];
+          if (typeof winner !== "number") return;
+          if (typeof changedPIdx === "number" && changedPIdx === winner) return;
+
+          const round = State.game.rounds[rIdx];
+          if (!Array.isArray(round)) return;
+
+          let sumOthers = 0;
+          for (let i = 0; i < round.length; i++) {
+            if (i === winner) continue;
+            const v = round[i];
+            if (v === "" || v === null || typeof v === "undefined") continue;
+            const n = parseInt(v);
+            if (isNaN(n)) continue;
+            sumOthers += n;
+          }
+
+          const winnerScore = (-sumOthers).toString();
+          const input = document.getElementById(`cell-${rIdx}-${winner}`);
+          if (input) {
+            input.value = winnerScore;
+            this.applyScoreValue(rIdx, winner, input, winnerScore, {
+              skipRecalc: true,
+            });
+          } else {
+            State.game.rounds[rIdx][winner] = winnerScore;
+            State.save();
+            Render.totals();
+            Render.leaderboard();
+          }
+        },
+
+        handleInput(rIdx, pIdx, el) {
+          if (!State.isGameStarted() && State.game.editingIdx === null) {
+            showError("Inicie a 1ª rodada para lançar os valores.");
+            el.value = "";
+            return;
+          }
+
+          let val = el.value;
+          if (/^\d+$/.test(val)) {
+            val = "-" + val;
+            el.value = val;
+          }
+
+          this.applyScoreValue(rIdx, pIdx, el, val);
+        },
+
+        openTileCalc(rIdx, pIdx) {
+          if (!State.isGameStarted() && State.game.editingIdx === null) {
+            showError("Inicie a 1ª rodada para lançar os valores.");
+            return;
+          }
+
+          const isEditingThisRound = State.game.editingIdx === rIdx;
+          const isCurrentRoundUnlocked =
+            State.game.editingIdx === null && State.game.currIdx === rIdx;
+
+          if (!isEditingThisRound && !isCurrentRoundUnlocked) {
+            showError(
+              "Essa rodada está bloqueada. Use o ícone de edição para alterar."
+            );
+            return;
+          }
+
+          TileCalc.open(rIdx, pIdx);
+        },
+
+        handleSmartAction() {
+          if (!State.isGameStarted()) {
+            this.startFirstRound();
+            return;
+          }
+
+          // Se o jogo já terminou, clicar no botão deve abrir o resultado final.
+          if (
+            State.game.editingIdx === null &&
+            State.game.currIdx >= State.game.rounds.length
+          ) {
+            openGameOverModal();
+            return;
+          }
+
+          if (State.game.players.length < 2)
+            return alert("Adicione jogadores.");
+
+          const targetIdx =
+            State.game.editingIdx !== null
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const round = State.game.rounds[targetIdx];
+
+          let empty = [],
+            sum = 0,
+            hasErr = false,
+            pos = 0,
+            neg = 0;
+          round.forEach((v, i) => {
+            if (v === "" || v === null) empty.push(i);
+            else {
+              const n = parseInt(v);
+              if (isNaN(n)) hasErr = true;
+              else {
+                sum += n;
+                if (n > 0) pos += n;
+                else neg += n;
+              }
+            }
+          });
+
+          if (hasErr) return alert("Valores inválidos.");
+
+          // 1. Validação Manual (0 vazios)
+          if (empty.length === 0) {
+            if (sum !== 0) {
+              showErrorDialog(sum, pos, neg);
+            } else {
+              if (State.game.editingIdx !== null) {
+                showConfirm(
+                  "Salvar Alterações?",
+                  "A soma está correta (0).",
+                  () => this.finishAction(targetIdx)
+                );
+              } else {
+                showConfirm(
+                  "Concluir Rodada?",
+                  "A soma está correta (0).",
+                  () => this.finishAction(targetIdx)
+                );  
+              }
+            }
+            return;
+          }
+
+          // 2. Auto-calc (1 vazio)
+          if (empty.length === 1) {
+            const winScore = sum * -1;
+            const winnerName = State.game.players[empty[0]];
+            showConfirm(
+              `Vencedor: ${winnerName}?`,
+              `Pontos Calculados: ${winScore > 0 ? "+" : ""}${winScore}`,
+              () => {
+                State.game.rounds[targetIdx][empty[0]] = winScore.toString();
+                this.finishAction(targetIdx);
+              }
+            );
+            return;
+          }
+
+          showError(
+            "Erro: Mais de um jogador vazio. Preencha todos os perdedores."
+          );
+        },
+
+        finishAction(rIdx) {
+          const wasEditing = State.game.editingIdx !== null;
+          const wasFinished =
+            State.isGameStarted() && State.game.currIdx >= State.game.rounds.length;
+
+          if (wasEditing) {
+            State.game.editingIdx = null;
+          } else if (State.game.currIdx < State.game.rounds.length) {
+            State.game.currIdx++;
+          }
+
+          const finishedNow =
+            !wasEditing &&
+            !wasFinished &&
+            State.isGameStarted() &&
+            State.game.currIdx >= State.game.rounds.length;
+
+          State.save();
+          Render.all();
+
+          if (finishedNow) {
+            openGameOverModal();
+          }
+
+          // Se o jogo já estava finalizado e o usuário salvou uma edição,
+          // reexibe o resultado final atualizado.
+          if (
+            wasEditing &&
+            State.isGameStarted() &&
+            State.game.currIdx >= State.game.rounds.length
+          ) {
+            openGameOverModal();
+          }
+        },
+
+        enableEdit(rIdx) {
+          showConfirm(
+            "Editar Rodada Anterior?",
+            "A rodada atual será bloqueada temporariamente.",
+            () => {
+              State.game.editingIdx = rIdx;
+              State.save();
+              Render.all();
+            }
+          );
+        },
+
+        switchTab(t) {
+          document
+            .querySelectorAll(".nav-link")
+            .forEach((e) => e.classList.remove("active"));
+          document.getElementById(`nav-${t}`).classList.add("active");
+          document
+            .getElementById("tab-game")
+            .classList.toggle("hidden", t !== "game");
+          document
+            .getElementById("tab-players")
+            .classList.toggle("hidden", t !== "players");
+          document
+            .getElementById("tab-rules")
+            .classList.toggle("hidden", t !== "rules");
+        },
+
+        // Timer Settings
+        openTimerSettings() {
+          document.getElementById("timerModal").classList.remove("hidden");
+          document.getElementById("customDuration").value = Math.round(
+            State.timer.d / 60
+          );
+          document.getElementById("soundToggle").checked = State.timer.s;
+        },
+        closeTimerSettings() {
+          document.getElementById("timerModal").classList.add("hidden");
+        },
+        setTempDuration(v) {
+          document.getElementById("customDuration").value = v;
+        },
+        saveTimerSettings() {
+          const minutes = parseInt(
+            document.getElementById("customDuration").value
+          );
+
+          if (Number.isNaN(minutes)) {
+            showError("Informe um número de minutos válido.");
+            return;
+          }
+
+          if (minutes <= 1 || minutes >= 60) {
+            showError("O tempo deve ser maior que 1 e menor que 60 minutos.");
+            return;
+          }
+
+          State.timer.d = minutes * 60;
+          State.timer.s = document.getElementById("soundToggle").checked;
+          State.saveTimer();
+          Timer.reset();
+          this.closeTimerSettings();
+        },
+      };
+
+      // === RENDER ENGINE ===
+      const Render = {
+        all() {
+          this.table();
+          this.totals();
+          this.updateAddPlayerState();
+          this.actionButton();
+          this.leaderboard();
+          this.playersManager();
+        },
+
+        playersManager() {
+          const wrap = document.getElementById("playersManager");
+          if (!wrap) return;
+
+          if (State.game.players.length === 0) {
+            wrap.innerHTML =
+              '<div class="text-center text-sm text-slate-500 py-6">Nenhum jogador adicionado.</div>';
+            return;
+          }
+
+          const canRemove = !State.isGameStarted();
+          const canReorder = !State.isGameStarted();
+
+          // Totais e ranking (apenas visual; não altera a ordem dos jogadores na tabela)
+          const totals = new Array(State.game.players.length).fill(0);
+          (State.game.rounds || []).forEach((r) => {
+            if (!Array.isArray(r)) return;
+            r.forEach((v, i) => {
+              const n = parseInt(v);
+              if (!isNaN(n)) totals[i] += n;
+            });
+          });
+
+          const activeRoundIdx =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === "number"
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const winnerIdx =
+            State.game.roundWinners &&
+            typeof State.game.roundWinners[activeRoundIdx] === "number"
+              ? State.game.roundWinners[activeRoundIdx]
+              : null;
+
+          const ranked = totals
+            .map((s, i) => ({ i, n: State.game.players[i], s }))
+            .sort((a, b) => (b.s - a.s) || (a.i - b.i));
+
+          let html = "";
+
+          // Classificação
+          html += `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-black uppercase tracking-wide text-slate-500">Classificação da partida</div>
+                <div class="text-[11px] font-bold text-slate-400">Total</div>
+              </div>
+          `;
+
+          const trophySvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+          ranked.forEach((p, rank) => {
+            const isLead = rank === 0;
+            const isSecond = rank === 1;
+            const isThird = rank === 2;
+
+            const badgeBg = isLead
+              ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+              : isSecond
+              ? "bg-slate-100 border-slate-200 text-slate-700"
+              : isThird
+              ? "bg-orange-100 border-orange-200 text-orange-800"
+              : "bg-slate-100 border-slate-200 text-slate-600";
+
+            const isActiveRoundWinner =
+              typeof winnerIdx === "number" && winnerIdx === p.i;
+
+            const col =
+              p.s > 0
+                ? "text-emerald-600"
+                : p.s < 0
+                ? "text-rose-600"
+                : isActiveRoundWinner
+                ? "text-emerald-600"
+                : "text-slate-400";
+
+            const sign =
+              p.s > 0 || (p.s === 0 && isActiveRoundWinner) ? "+" : "";
+
+            const badgeContent = isLead
+              ? trophySvg
+              : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+            html += `
+              <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                      ${badgeContent}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                  </div>
+                  <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                </div>
+              </div>
+            `;
+          });
+
+          html += `
+            </div>
+            <div class="h-px bg-slate-100 my-3"></div>
+            <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2">Gerenciar jogadores</div>
+          `;
+
+          State.game.players.forEach((name, idx) => {
+            const isEditing = UI.editingPlayerIdx === idx;
+
+            if (isEditing) {
+              html += `
+                <div class="flex items-center gap-2">
+                  <input
+                    id="playerNameInput-${idx}"
+                    type="text"
+                    class="flex-1 p-3 bg-white border border-slate-200 rounded-xl text-base font-semibold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none"
+                    value="${String(name).replace(/"/g, "&quot;")}" 
+                    onkeypress="if(event.key==='Enter'){ Actions.savePlayerName(${idx}); }"
+                  />
+                  <button
+                    onclick="Actions.savePlayerName(${idx})"
+                    class="px-4 py-3 rounded-xl bg-slate-900 text-white font-bold"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onclick="Actions.cancelEditPlayer()"
+                    class="px-4 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              `;
+              return;
+            }
+
+            html += `
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-base font-bold text-slate-800 truncate">${name}</div>
+                  <div class="text-xs text-slate-500">Jogador #${idx + 1}</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    onclick="Actions.movePlayerUp(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center ${
+                      canReorder && idx > 0 ? "" : "opacity-50 pointer-events-none"
+                    }"
+                    title="${
+                      !canReorder
+                        ? "Não é possível reordenar após iniciar"
+                        : idx === 0
+                        ? "Já está no topo"
+                        : "Mover para cima"
+                    }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15.75L12 12l3.75 3.75M12 12v9" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-9 9 9" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick="Actions.movePlayerDown(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center ${
+                      canReorder && idx < State.game.players.length - 1
+                        ? ""
+                        : "opacity-50 pointer-events-none"
+                    }"
+                    title="${
+                      !canReorder
+                        ? "Não é possível reordenar após iniciar"
+                        : idx === State.game.players.length - 1
+                        ? "Já está no fim"
+                        : "Mover para baixo"
+                    }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 8.25L12 12l-3.75-3.75M12 12V3" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-9 9-9-9" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick="Actions.beginEditPlayer(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"
+                    title="Editar"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L16.862 4.487" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick="Actions.removePlayer(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center ${
+                      canRemove ? "" : "opacity-50 pointer-events-none"
+                    }"
+                    title="${
+                      canRemove
+                        ? "Remover jogador"
+                        : "Não é possível remover após iniciar"
+                    }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+
+          wrap.innerHTML = html;
+        },
+
+        updateAddPlayerState() {
+          const section = document.getElementById("addPlayerSection");
+          const sectionPlayers = document.getElementById("addPlayerSectionPlayersWrap");
+          const statusPill = document.getElementById("gameStatusPill");
+
+          const inpMain = document.getElementById("newPlayerName");
+          const inpPlayers = document.getElementById("newPlayerNamePlayers");
+          const btnMain = document.getElementById("addPlayerBtn");
+          const btnPlayers = document.getElementById("addPlayerBtnPlayers");
+
+          const atMax =
+            Array.isArray(State.game.players) &&
+            State.game.players.length >= GameLimits.MAX_PLAYERS;
+
+          const started = State.isGameStarted();
+          const finished =
+            started && State.game && State.game.currIdx >= State.game.rounds.length;
+
+          if (started) {
+            section.classList.add("hidden");
+            if (sectionPlayers) sectionPlayers.classList.add("hidden");
+
+            if (inpMain) inpMain.disabled = true;
+            if (inpPlayers) inpPlayers.disabled = true;
+            if (btnMain) btnMain.disabled = true;
+            if (btnPlayers) btnPlayers.disabled = true;
+
+            if (statusPill) {
+              statusPill.classList.remove("hidden");
+
+              if (finished) {
+                statusPill.className =
+                  "px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-black inline-flex items-center gap-1.5";
+                statusPill.title = "Jogo finalizado";
+                statusPill.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="hidden sm:inline">Jogo finalizado</span>
+                  <span class="sm:hidden">Final</span>
+                `;
+              } else {
+                statusPill.className =
+                  "px-2.5 py-1 rounded-full bg-orange-50 border border-orange-100 text-orange-700 text-xs font-black inline-flex items-center gap-1.5";
+                statusPill.title = "Partida em andamento";
+                statusPill.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v7.5a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z" />
+                  </svg>
+                  <span class="hidden sm:inline">Partida em andamento</span>
+                  <span class="sm:hidden">Em jogo</span>
+                `;
+              }
+            }
+          } else {
+            section.classList.remove("hidden");
+            if (sectionPlayers) sectionPlayers.classList.remove("hidden");
+            if (statusPill) statusPill.classList.add("hidden");
+
+            if (inpMain) {
+              inpMain.disabled = atMax;
+              inpMain.placeholder = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Nome do jogador...";
+              inpMain.classList.toggle("bg-slate-50", atMax);
+              inpMain.classList.toggle("opacity-70", atMax);
+            }
+            if (inpPlayers) {
+              inpPlayers.disabled = atMax;
+              inpPlayers.placeholder = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Nome do jogador...";
+              inpPlayers.classList.toggle("bg-slate-50", atMax);
+              inpPlayers.classList.toggle("opacity-70", atMax);
+            }
+
+            if (btnMain) {
+              btnMain.disabled = atMax;
+              btnMain.classList.toggle("opacity-50", atMax);
+              btnMain.classList.toggle("cursor-not-allowed", atMax);
+              btnMain.title = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Adicionar jogador";
+            }
+
+            if (btnPlayers) {
+              btnPlayers.disabled = atMax;
+              btnPlayers.classList.toggle("opacity-50", atMax);
+              btnPlayers.classList.toggle("cursor-not-allowed", atMax);
+              btnPlayers.title = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Adicionar jogador";
+            }
+          }
+        },
+
+        table() {
+          const empty = document.getElementById("emptyState");
+          const cont = document.getElementById("tableContainer");
+          const lboard = document.getElementById("leaderboardBar");
+
+          if (State.game.players.length === 0) {
+            empty.classList.remove("hidden");
+            cont.classList.add("hidden");
+            lboard.classList.add("hidden");
+            return;
+          }
+          empty.classList.add("hidden");
+          cont.classList.remove("hidden");
+          lboard.classList.remove("hidden");
+
+          let h =
+            '<th class="py-3 px-2 w-[50px] sticky left-0 z-20 bg-slate-50 border-r border-slate-200 text-center font-bold text-slate-400">Rodada</th>';
+          State.game.players.forEach(
+            (p) =>
+              (h += `<th class="py-3 px-2 min-w-[90px] text-center font-bold text-slate-700 truncate max-w-[110px]">${p}</th>`)
+          );
+          document.getElementById("headerRow").innerHTML = h;
+
+          let b = "";
+          State.game.rounds.forEach((rnd, rIdx) => {
+            const isEdit = State.game.editingIdx === rIdx;
+            const isCurr =
+              State.game.currIdx === rIdx && State.game.editingIdx === null;
+            const isPast = rIdx < State.game.currIdx;
+
+            let rClass = "border-b border-slate-100 ";
+            let sClass =
+              "sticky left-0 z-10 py-2 border-r border-slate-200 text-center ";
+            let ro = "readonly";
+
+            if (isEdit) {
+              rClass += "editing-round-row";
+              sClass += "bg-orange-50";
+              ro = "";
+            } else if (isCurr) {
+              rClass += "active-round-row";
+              sClass += "bg-white";
+              ro = State.isGameStarted() ? "" : "readonly";
+            } else if (isPast) {
+              rClass += "inactive-round-row";
+              sClass += "bg-slate-50";
+            } else {
+              rClass += "bg-white opacity-50";
+              sClass += "bg-white";
+            }
+
+            let icon = `<span class="block text-xs font-mono font-bold text-slate-300">${
+              rIdx + 1
+            }</span>`;
+            if (isEdit)
+              icon = `<span class="text-orange-600 font-bold text-xs">Edit</span>`;
+            else if (isCurr) {
+              if (State.game.editingIdx !== null) {
+                icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-slate-300 mx-auto"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>`;
+                ro = "readonly";
+                rClass = rClass.replace("active", "inactive");
+              } else
+                icon = `<span class="block text-xs font-mono font-bold text-orange-600">${
+                  rIdx + 1
+                }</span>`;
+            } else if (isPast && State.game.editingIdx === null) {
+              icon = `<button onclick="Actions.enableEdit(${rIdx})" class="mx-auto text-slate-300 hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg></button>`;
+            }
+
+            b += `<tr class="${rClass}"><td class="${sClass}">${icon}</td>`;
+            rnd.forEach((v, pIdx) => {
+              const isWinnerCell =
+                State.game.roundWinners &&
+                typeof State.game.roundWinners[rIdx] === "number" &&
+                State.game.roundWinners[rIdx] === pIdx;
+              const n = parseInt(v);
+              let c = "text-slate-800";
+              if (!isNaN(n))
+                c =
+                  n > 0
+                    ? "text-emerald-600"
+                    : n < 0
+                    ? "text-rose-600"
+                    : isWinnerCell
+                    ? "text-emerald-600"
+                    : "text-slate-400";
+              const ring =
+                isEdit || (isCurr && State.isGameStarted())
+                  ? "focus:ring-2 focus:ring-inset focus:ring-orange-500 bg-orange-50/10"
+                  : "focus:ring-0";
+              const winnerIcon = isWinnerCell
+                ? `<div class="absolute top-1 left-1 w-6 h-6 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-center text-yellow-800 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                      <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" />
+                      <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" />
+                    </svg>
+                  </div>`
+                : "";
+              b += `<td class="p-0 border-r border-slate-100 last:border-0 relative h-[52px]">${winnerIcon}<input id="cell-${rIdx}-${pIdx}" type="tel" inputmode="decimal" class="w-full h-full text-center text-lg font-bold bg-transparent outline-none transition-all ${c} ${ring} placeholder-slate-200" value="${v}" placeholder="-" ${ro} onfocus="this.select()" onclick="Actions.openTileCalc(${rIdx}, ${pIdx})" oninput="Actions.handleInput(${rIdx}, ${pIdx}, this)"></td>`;
+            });
+            b += "</tr>";
+          });
+          document.getElementById("tableBody").innerHTML = b;
+
+          let f =
+            '<td class="py-4 px-2 sticky left-0 z-20 bg-slate-900 border-r border-slate-700 text-center font-bold text-xs uppercase text-slate-300">Total</td>';
+          State.game.players.forEach(
+            (_, i) =>
+              (f += `<td id="total-${i}" class="text-center font-black text-lg py-3 text-slate-400">0</td>`)
+          );
+          document.getElementById("totalRow").innerHTML = f;
+        },
+
+        totals() {
+          let sums = new Array(State.game.players.length).fill(0);
+          State.game.rounds.forEach((r) =>
+            r.forEach((v, i) => {
+              const n = parseInt(v);
+              if (!isNaN(n)) sums[i] += n;
+            })
+          );
+          sums.forEach((s, i) => {
+            const el = document.getElementById(`total-${i}`);
+            if (el) {
+              el.innerText = s > 0 ? `+${s}` : s;
+              el.className = `text-center font-black text-lg py-3 ${
+                s > 0
+                  ? "text-emerald-400"
+                  : s < 0
+                  ? "text-rose-400"
+                  : "text-slate-500"
+              }`;
+            }
+          });
+          return sums;
+        },
+
+        leaderboard() {
+          const sums = this.totals();
+          const list = sums
+            .map((s, i) => ({ n: State.game.players[i], s, i }))
+            .sort((a, b) => b.s - a.s);
+          const el = document.getElementById("leaderboardList");
+          const toggleBtn = document.getElementById("leaderboardToggleBtn");
+          const body = document.getElementById("leaderboardBody");
+          const chevron = document.getElementById("leaderboardChevron");
+          if (!el) return;
+
+          let h = "";
+
+          const activeRoundIdx =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === "number"
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const winnerIdx =
+            State.game.roundWinners &&
+            typeof State.game.roundWinners[activeRoundIdx] === "number"
+              ? State.game.roundWinners[activeRoundIdx]
+              : null;
+
+          const hasMoreThanPodium = list.length > 3;
+          const expanded = UI.leaderboardExpanded === true;
+          const open = UI.leaderboardOpen === true;
+
+          if (body) body.classList.toggle("hidden", !open);
+          if (chevron) {
+            chevron.innerHTML = open
+              ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                   <path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" />
+                 </svg>`
+              : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                   <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                 </svg>`;
+          }
+
+          if (!open) {
+            el.innerHTML = "";
+            if (toggleBtn) toggleBtn.classList.add("hidden");
+            return;
+          }
+
+          const showAll = expanded || !hasMoreThanPodium;
+          const visible = showAll ? list : list.slice(0, 3);
+
+          if (toggleBtn) {
+            if (hasMoreThanPodium) {
+              toggleBtn.classList.remove("hidden");
+              toggleBtn.title = showAll ? "Mostrar menos" : "Ver todos";
+              toggleBtn.innerHTML = showAll
+                ? `<span class="sr-only">Mostrar menos</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                   </svg>`
+                : `<span class="sr-only">Ver todos</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M3 5.75A.75.75 0 013.75 5h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zM3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10zm0 4.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+                   </svg>`;
+            } else {
+              toggleBtn.classList.add("hidden");
+              UI.leaderboardExpanded = false;
+            }
+          }
+
+          if (showAll) {
+            el.className = "flex flex-col gap-1 max-h-44 overflow-y-auto pr-1 -mr-1";
+          } else {
+            el.className = "flex gap-2 overflow-x-auto hide-scrollbar py-0.5";
+          }
+
+          const trophySvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+          visible.forEach((p, rank) => {
+            const isLead = rank === 0;
+            const isSecond = rank === 1;
+            const isThird = rank === 2;
+
+            const badgeBg = isLead
+              ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+              : isSecond
+              ? "bg-slate-100 border-slate-200 text-slate-700"
+              : isThird
+              ? "bg-orange-100 border-orange-200 text-orange-800"
+              : "bg-slate-100 border-slate-200 text-slate-600";
+
+            const isActiveRoundWinner =
+              typeof winnerIdx === "number" && winnerIdx === p.i;
+
+            const col =
+              p.s > 0
+                ? "text-emerald-600"
+                : p.s < 0
+                ? "text-rose-600"
+                : isActiveRoundWinner
+                ? "text-emerald-600"
+                : "text-slate-400";
+
+            const sign =
+              p.s > 0 || (p.s === 0 && isActiveRoundWinner) ? "+" : "";
+
+            const badgeContent = isLead
+              ? trophySvg
+              : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+            if (showAll) {
+              h += `
+                <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                        ${badgeContent}
+                      </div>
+                      <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                    </div>
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  </div>
+                </div>
+              `;
+            } else {
+              h += `
+                <div class="shrink-0 rounded-lg border border-yellow-100 bg-white/70 px-2 py-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center">
+                      ${badgeContent}
+                    </div>
+                    <div class="text-xs font-black text-slate-800 max-w-[120px] truncate">${p.n}</div>
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  </div>
+                </div>
+              `;
+            }
+          });
+
+          el.innerHTML = h;
+        },
+
+        actionButton() {
+          const btn = document.getElementById("smartActionBtn");
+          if (State.game.players.length === 0) {
+            btn.classList.add("hidden");
+            return;
+          }
+
+          btn.classList.remove("hidden");
+
+          if (State.game.editingIdx !== null) {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.classList.replace("bg-orange-600", "bg-slate-900");
+            btn.disabled = false;
+            btn.innerHTML = `<div class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-orange-400"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L16.862 4.487" /></svg></div><span class="text-lg">Salvar Alterações</span>`;
+            return;
+          }
+
+          if (!State.isGameStarted()) {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.classList.replace("bg-slate-900", "bg-orange-600");
+            btn.disabled = State.game.players.length < GameLimits.MIN_PLAYERS;
+            btn.innerHTML =
+              '<span class="text-lg">Iniciar Rodada</span>';
+            return;
+          }
+
+          if (State.game.currIdx >= State.game.rounds.length) {
+            btn.classList.replace("bg-slate-900", "bg-emerald-600");
+            btn.classList.replace("bg-orange-600", "bg-emerald-600");
+            btn.innerHTML = "<span>Jogo Finalizado</span>";
+            // Mantém clicável para abrir o resumo final.
+            btn.disabled = false;
+          } else {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.disabled = false;
+            btn.innerHTML = `<div class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-orange-400"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><span class="text-lg">Concluir Rodada</span>`;
+          }
+        },
+      };
+
+      // === GLOBAL MODALS ===
+      let confirmCallback = null;
+      function showConfirm(title, msg, cb) {
+        document.getElementById("confirmTitle").innerText = title;
+        document.getElementById("confirmMsg").innerText = msg;
+        confirmCallback = cb;
+        document.getElementById("confirmModal").classList.remove("hidden");
+      }
+      function closeConfirm() {
+        document.getElementById("confirmModal").classList.add("hidden");
+        confirmCallback = null;
+      }
+      function execConfirm() {
+        if (confirmCallback) confirmCallback();
+        closeConfirm();
+      }
+
+      function confirmReset() {
+        showConfirm(
+          "Reiniciar Jogo?",
+          "Todos os dados da partida serão perdidos.",
+          () => {
+            State.game = {
+              players: [],
+              rounds: [],
+              currIdx: 0,
+              editingIdx: null,
+              locked: false,
+              started: false,
+              tileDetails: {},
+              roundWinners: {},
+            };
+            State.save();
+            Render.all();
+          }
+        );
+      }
+
+      function closeGameOverModal() {
+        document.getElementById("gameOverModal").classList.add("hidden");
+      }
+
+      function restartFromGameOver() {
+        closeGameOverModal();
+        confirmReset();
+      }
+
+      function openGameOverModal() {
+        const sums = new Array(State.game.players.length).fill(0);
+        (State.game.rounds || []).forEach((r) => {
+          if (!Array.isArray(r)) return;
+          r.forEach((v, i) => {
+            const n = parseInt(v);
+            if (!isNaN(n)) sums[i] += n;
+          });
+        });
+
+        const ranked = sums
+          .map((s, i) => ({ i, n: State.game.players[i], s }))
+          .sort((a, b) => (b.s - a.s) || (a.i - b.i));
+
+        const winner = ranked.length ? ranked[0] : null;
+        const title = document.getElementById("gameOverTitle");
+        const subtitle = document.getElementById("gameOverSubtitle");
+        const list = document.getElementById("gameOverRanking");
+
+        if (winner) {
+          title.textContent = `Parabéns, ${winner.n}!`;
+          subtitle.textContent = "Vencedor(a) da partida. Classificação final:";
+        } else {
+          title.textContent = "Jogo finalizado!";
+          subtitle.textContent = "Classificação final:";
+        }
+
+        let html = "";
+        const trophySvg =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+        ranked.forEach((p, rank) => {
+          const isLead = rank === 0;
+          const isSecond = rank === 1;
+          const isThird = rank === 2;
+
+          const badgeBg = isLead
+            ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+            : isSecond
+            ? "bg-slate-100 border-slate-200 text-slate-700"
+            : isThird
+            ? "bg-orange-100 border-orange-200 text-orange-800"
+            : "bg-slate-100 border-slate-200 text-slate-600";
+
+          const col =
+            p.s > 0
+              ? "text-emerald-600"
+              : p.s < 0
+              ? "text-rose-600"
+              : "text-slate-400";
+
+          const sign = p.s > 0 ? "+" : "";
+          const badgeContent = isLead
+            ? trophySvg
+            : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+          html += `
+            <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                    ${badgeContent}
+                  </div>
+                  <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                </div>
+                <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        list.innerHTML = html;
+        document.getElementById("gameOverModal").classList.remove("hidden");
+      }
+
+      function showError(msg) {
+        document.getElementById("errorModalMsg").innerText = msg;
+        document.getElementById("errorModal").classList.remove("hidden");
+      }
+
+      function showErrorDialog(diff, pos, neg) {
+        const m = document.getElementById("errorModal");
+        document.getElementById(
+          "errorModalMsg"
+        ).innerHTML = `<div class="space-y-3"><p>A soma deve ser zero.</p><div class="flex justify-between text-xs font-bold uppercase bg-slate-50 p-3 rounded-lg border border-slate-200"><div class="text-emerald-600 text-center">Positivos<br><span class="text-lg">+${pos}</span></div><div class="text-rose-600 text-center">Negativos<br><span class="text-lg">${neg}</span></div></div><div class="bg-red-50 p-2 rounded-lg text-center"><p class="text-xs font-bold text-red-800 uppercase mb-1">Diferença</p><p class="text-2xl font-black text-red-600">${
+          diff > 0 ? "+" : ""
+        }${diff}</p></div></div>`;
+        m.classList.remove("hidden");
+      }
+
+      let pendingCalculation = null;
+      function confirmWinner() {
+        if (pendingCalculation) {
+          State.game.rounds[pendingCalculation.roundIdx][
+            pendingCalculation.playerIdx
+          ] = pendingCalculation.score.toString();
+          document.getElementById("winnerModal").classList.add("hidden");
+          Actions.finishAction(pendingCalculation.roundIdx);
+        }
+      }
+      function closeWinnerModal() {
+        document.getElementById("winnerModal").classList.add("hidden");
+        pendingCalculation = null;
+      }
+
+      document.getElementById("confirmBtnAction").onclick = execConfirm;
+      State.init();
+      Timer.updateUI();
+      Render.all();
+    </script>
+  </body>
+</html>
