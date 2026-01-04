@@ -1800,16 +1800,8 @@
           }
           if (typeof this.game.turnAutoRotate === 'undefined') this.game.turnAutoRotate = true;
           if (typeof this.game.confirmExpiry === 'undefined') this.game.confirmExpiry = false;
-          if (typeof this.game.penalties === 'undefined' || this.game.penalties === null || typeof this.game.penalties !== 'object') this.game.penalties = {};
-
-          // Defaults relacionados à rotação e regras de tempo
-          if (typeof this.game.turnIdx === 'undefined') this.game.turnIdx = 0;
-          if (typeof this.game.timeRule === 'undefined') {
-            const minutes = Math.round(this.timer.d / 60);
-            this.game.timeRule = minutes === 1 ? 'official' : minutes === 2 ? 'alternative' : 'custom';
-          }
-          if (typeof this.game.turnAutoRotate === 'undefined') this.game.turnAutoRotate = true;
-          if (typeof this.game.penalties === 'undefined' || this.game.penalties === null || typeof this.game.penalties !== 'object') this.game.penalties = {};
+          if (typeof this.game.roundPenalties === 'undefined' || this.game.roundPenalties === null || typeof this.game.roundPenalties !== 'object') this.game.roundPenalties = {};
+          if (!Array.isArray(this.game.events)) this.game.events = []; // registro de eventos (persistido)
         },
         save() {
           localStorage.setItem("rummi_v7_game", JSON.stringify(this.game));
@@ -1963,8 +1955,10 @@
 
           const applyExpiry = () => {
             // Registrar penalidade
-            if (!State.game.penalties) State.game.penalties = {};
-            State.game.penalties[pIdx] = (State.game.penalties[pIdx] || 0) + draws;
+            if (!State.game.roundPenalties) State.game.roundPenalties = {};
+            const rIdx = activeRoundIdx;
+            if (!State.game.roundPenalties[rIdx]) State.game.roundPenalties[rIdx] = {};
+            State.game.roundPenalties[rIdx][pIdx] = (State.game.roundPenalties[rIdx][pIdx] || 0) + draws;
 
             // Reverter quaisquer peças registradas para essa rodada/jogador (se houver)
             const activeRoundIdx =
@@ -1988,6 +1982,9 @@
             // Mensagem curta para o toast
             const toastMsg = `${name} estourou o tempo (${ruleLabel}). Penalidade: +${draws} peça(s). ${reverted ? 'Peças devolvidas.' : 'Sem peças registradas.'} Próximo: ${nextName}.`;
             showToast(toastMsg);
+
+            // Registrar evento com referência a rodada
+            showEvent(`[Rodada ${activeRoundIdx + 1}] ${toastMsg}`);
 
             // Avança para próximo jogador
             Actions.rotateToNextPlayer();
@@ -3087,35 +3084,68 @@
           });
         },
         markPenaltyPaid(pIdx) {
-          if (!State.game.penalties || !State.game.penalties[pIdx]) {
-            showError('Nenhuma penalidade pendente para este jogador.');
+          const active =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === 'number'
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          if (!State.game.roundPenalties || !State.game.roundPenalties[active] || !State.game.roundPenalties[active][pIdx]) {
+            showError('Nenhuma penalidade pendente para este jogador nesta rodada.');
             return;
           }
-          State.game.penalties[pIdx] = Math.max(0, State.game.penalties[pIdx] - 1);
-          if (State.game.penalties[pIdx] === 0) delete State.game.penalties[pIdx];
+          State.game.roundPenalties[active][pIdx] = Math.max(0, State.game.roundPenalties[active][pIdx] - 1);
+          if (State.game.roundPenalties[active][pIdx] === 0) delete State.game.roundPenalties[active][pIdx];
           State.save();
           Render.playersManager();
-          showToast('Marcado 1 peça como comprada.');
-          showEvent(`Penalidade aplicada: Jogador #${pIdx + 1} comprou 1 peça.`);
+          showToast('Marcado 1 peça como comprada nesta rodada.');
+          showEvent(`Penalidade aplicada: [Rodada ${active + 1}] Jogador #${pIdx + 1} comprou 1 peça.`);
         },
         addPenalty(pIdx, count = 1) {
-          if (!State.game.penalties) State.game.penalties = {};
-          State.game.penalties[pIdx] = (State.game.penalties[pIdx] || 0) + count;
+          const active =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === 'number'
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          if (!State.game.roundPenalties) State.game.roundPenalties = {};
+          if (!State.game.roundPenalties[active]) State.game.roundPenalties[active] = {};
+          State.game.roundPenalties[active][pIdx] = (State.game.roundPenalties[active][pIdx] || 0) + count;
           State.save();
           Render.playersManager();
-          showToast(`Penalidade adicionada: +${count}`);
-          showEvent(`Penalidade adicionada manualmente: Jogador #${pIdx + 1} recebeu +${count} peça(s).`);
+          showToast(`Penalidade adicionada nesta rodada: +${count}`);
+          showEvent(`Penalidade adicionada manualmente: [Rodada ${active + 1}] Jogador #${pIdx + 1} recebeu +${count} peça(s).`);
         },
         openPenaltyAdjust(pIdx) {
           State.uiPenaltyAdjust = { pIdx };
           const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          const active =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === 'number'
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const current = (State.game.roundPenalties && State.game.roundPenalties[active] && State.game.roundPenalties[active][pIdx]) || 0;
           const amountEl = document.getElementById('penaltyAdjustAmount');
           if (amountEl) amountEl.value = 1;
           const nameEl = document.getElementById('penaltyAdjustName');
-          if (nameEl) nameEl.innerText = name;
+          if (nameEl) nameEl.innerText = `${name} (Rodada ${active + 1}) - atual: ${current}`;
           const modal = document.getElementById('penaltyAdjustModal');
           if (modal) modal.classList.remove('hidden');
           if (amountEl && amountEl.focus) amountEl.focus();
+        },
+        applyPenaltyAdjust() {
+          const s = State.uiPenaltyAdjust;
+          if (!s) return;
+          const pIdx = s.pIdx;
+          const raw = parseInt(document.getElementById('penaltyAdjustAmount').value, 10);
+          if (Number.isNaN(raw)) { showError('Informe um número válido.'); return; }
+          const active =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === 'number'
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          if (!State.game.roundPenalties) State.game.roundPenalties = {};
+          if (!State.game.roundPenalties[active]) State.game.roundPenalties[active] = {};
+          State.game.roundPenalties[active][pIdx] = Math.max(0, (State.game.roundPenalties[active][pIdx] || 0) + raw);
+          State.save();
+          Render.playersManager();
+          showToast(`Penalidade ajustada nesta rodada: ${raw >= 0 ? '+' : ''}${raw}`);
+          showEvent(`Penalidade ajustada: [Rodada ${active + 1}] Jogador #${pIdx + 1} ${raw >= 0 ? 'recebeu' : 'reduziu'} ${Math.abs(raw)} peça(s).`);
+          this.closePenaltyAdjust();
         },
         closePenaltyAdjust() {
           const modal = document.getElementById('penaltyAdjustModal');
@@ -3183,7 +3213,14 @@
             .join('');
         }
 
-          const penalties = State.game.penalties || {};
+          const activeRoundIdx =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === 'number'
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const penalties =
+            State.game.roundPenalties && State.game.roundPenalties[activeRoundIdx]
+              ? State.game.roundPenalties[activeRoundIdx]
+              : {};
 
           // helper para truncar nomes longos para exibição compacta
           const formatForTimer = (n, max = 12) => {
@@ -3233,7 +3270,7 @@
                 <div class="text-xs font-black uppercase tracking-wide text-slate-500">Classificação da partida</div>
                 <div class="flex items-center gap-4">
                   <div class="text-[11px] font-bold text-slate-400">Total</div>
-                  <div class="text-[11px] font-bold text-rose-500">Peças</div>
+                  <div class="text-[11px] font-bold text-rose-500" title="Peças compradas nesta rodada">Peças (rodada)</div>
                 </div>
               </div>
           `;
