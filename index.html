@@ -1363,7 +1363,13 @@
         class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content"
       >
         <h3 class="text-lg font-bold text-slate-800 mb-4">Configurar Timer</h3>
-        <div class="grid grid-cols-3 gap-2 mb-4">
+        <div class="grid grid-cols-4 gap-2 mb-4">
+          <button
+            onclick="Actions.setTempDuration(1)"
+            class="py-2 border rounded-lg hover:bg-orange-50 font-bold text-slate-600"
+          >
+            1min
+          </button>
           <button
             onclick="Actions.setTempDuration(2)"
             class="py-2 border rounded-lg hover:bg-orange-50 font-bold text-slate-600"
@@ -1387,7 +1393,7 @@
           type="number"
           id="customDuration"
           class="w-full border border-slate-300 rounded-xl p-3 text-center text-lg font-bold mb-6 outline-none focus:ring-2 focus:ring-orange-500"
-          placeholder="Minutos (2 a 59)"
+          placeholder="Minutos (1 a 59)"
         />
         <div
           class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-6"
@@ -1424,13 +1430,12 @@
         class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content"
       >
         <div class="text-center mb-6">
-          <div
-            class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"
-          >
-            🏆
+          <div class="bg-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl relative">
+            <span class="text-3xl">🏆</span>
+            <span id="modalWinnerBadge" class="absolute -bottom-2 right-0 bg-emerald-600 text-white text-sm font-black px-2 py-1 rounded-full transform translate-x-1/4">+0</span>
           </div>
           <h3 class="text-xl font-black text-slate-800">Confirmar Vencedor?</h3>
-          <p class="text-slate-500 mt-2 text-sm">
+          <p id="winnerModalMsg" class="text-slate-500 mt-2 text-sm">
             O sistema calculou a pontuação para equilibrar a rodada.
           </p>
         </div>
@@ -2598,14 +2603,8 @@
           if (empty.length === 1) {
             const winScore = sum * -1;
             const winnerName = State.game.players[empty[0]];
-            showConfirm(
-              `Vencedor: ${winnerName}?`,
-              `Pontos Calculados: ${winScore > 0 ? "+" : ""}${winScore}`,
-              () => {
-                State.game.rounds[targetIdx][empty[0]] = winScore.toString();
-                this.finishAction(targetIdx);
-              }
-            );
+            // Usar o modal de vencedor melhorado para mostrar nome e pontuação
+            openWinnerModal(targetIdx, empty[0], winScore);
             return;
           }
 
@@ -2701,8 +2700,8 @@
             return;
           }
 
-          if (minutes <= 1 || minutes >= 60) {
-            showError("O tempo deve ser maior que 1 e menor que 60 minutos.");
+          if (minutes < 1 || minutes >= 60) {
+            showError("O tempo deve ser maior ou igual a 1 e menor que 60 minutos.");
             return;
           }
 
@@ -3487,6 +3486,31 @@
       }
 
       let pendingCalculation = null;
+
+      function openWinnerModal(roundIdx, playerIdx, score) {
+        const name = (State.game.players && State.game.players[playerIdx]) || "";
+        const nameEl = document.getElementById("modalWinnerName");
+        const scoreEl = document.getElementById("modalWinnerScore");
+        const badgeEl = document.getElementById("modalWinnerBadge");
+        const msgEl = document.getElementById("winnerModalMsg");
+
+        if (nameEl) nameEl.textContent = name;
+
+        const sStr = `${score > 0 ? "+" : ""}${score}`;
+        if (scoreEl) scoreEl.textContent = sStr;
+        if (badgeEl) {
+          badgeEl.textContent = sStr;
+          badgeEl.classList.remove("bg-emerald-600", "bg-rose-600");
+          badgeEl.classList.add(score >= 0 ? "bg-emerald-600" : "bg-rose-600");
+        }
+
+        if (msgEl)
+          msgEl.textContent = `Pontos calculados: ${sStr}. Confirme para aplicar e encerrar a rodada.`;
+
+        pendingCalculation = { roundIdx, playerIdx, score };
+        document.getElementById("winnerModal").classList.remove("hidden");
+      }
+
       function confirmWinner() {
         if (pendingCalculation) {
           State.game.rounds[pendingCalculation.roundIdx][
@@ -3496,6 +3520,7 @@
           Actions.finishAction(pendingCalculation.roundIdx);
         }
       }
+
       function closeWinnerModal() {
         document.getElementById("winnerModal").classList.add("hidden");
         pendingCalculation = null;
