@@ -1,0 +1,13 @@
+{
+  "name": "rummikub-helper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:watch": "jest --watchAll"
+  },
+  "devDependencies": {
+    "jest": "^29.6.1",
+    "jsdom": "^21.1.0"
+  }
+}
