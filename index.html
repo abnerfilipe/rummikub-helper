@@ -3079,6 +3079,14 @@
           Render.playersManager();
           showToast('Marcado 1 peça como comprada.');
           showEvent(`Penalidade aplicada: Jogador #${pIdx + 1} comprou 1 peça.`);
+        },
+        addPenalty(pIdx, count = 1) {
+          if (!State.game.penalties) State.game.penalties = {};
+          State.game.penalties[pIdx] = (State.game.penalties[pIdx] || 0) + count;
+          State.save();
+          Render.playersManager();
+          showToast(`Penalidade adicionada: +${count}`);
+          showEvent(`Penalidade adicionada manualmente: Jogador #${pIdx + 1} recebeu +${count} peça(s).`);
         }
         confirmSkipTurn() {
           const pIdx = typeof State.game.turnIdx === 'number' ? State.game.turnIdx : 0;
@@ -3175,7 +3183,10 @@
             <div class="space-y-1">
               <div class="flex items-center justify-between">
                 <div class="text-xs font-black uppercase tracking-wide text-slate-500">Classificação da partida</div>
-                <div class="text-[11px] font-bold text-slate-400">Total</div>
+                <div class="flex items-center gap-4">
+                  <div class="text-[11px] font-bold text-slate-400">Total</div>
+                  <div class="text-[11px] font-bold text-rose-500">Peças</div>
+                </div>
               </div>
           `;
 
@@ -3221,9 +3232,12 @@
                     <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
                       ${badgeContent}
                     </div>
-                    <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n} ${penalties[p.i] ? `<span class="ml-2 inline-block px-2 py-0.5 text-[11px] rounded-full bg-rose-50 text-rose-600 font-black">+${penalties[p.i]}</span>` : ''}</div>
+                    <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
                   </div>
-                  <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  <div class="flex items-center gap-4">
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                    <div class="text-xs font-black tabular-nums text-rose-600">${penalties[p.i] || 0}</div>
+                  </div>
                 </div>
               </div>
             `;
@@ -3270,8 +3284,18 @@
             html += `
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="text-base font-bold text-slate-800 truncate">${name} ${penaltyCount > 0 ? `<span class="text-rose-600 font-black text-xs ml-2">+${penaltyCount}</span>` : ''} ${isCurrentTurn ? `<span class="ml-2 inline-block px-2 py-0.5 text-[11px] rounded-full bg-orange-50 text-orange-700 font-black">Atual</span>` : ''}</div>
+                  <div class="text-base font-bold text-slate-800 truncate">${name} ${isCurrentTurn ? `<span class="ml-2 inline-block px-2 py-0.5 text-[11px] rounded-full bg-orange-50 text-orange-700 font-black">Atual</span>` : ''}</div>
                   <div class="text-xs text-slate-500">Jogador #${idx + 1}</div>
+                </div>
+
+                <div class="w-20 text-center">
+                  <div class="text-sm font-black text-rose-600">${penaltyCount}</div>
+                  <div class="text-xs text-slate-400 mt-0.5">Peças</div>
+                  <div class="mt-2 flex items-center justify-center gap-1">
+                    <button onclick="Actions.addPenalty(${idx})" class="w-7 h-7 rounded-md bg-rose-50 text-rose-600 font-bold">+</button>
+                    <button onclick="Actions.markPenaltyPaid(${idx})" class="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 font-bold">✓</button>
+                  </div>
+                </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   <button
