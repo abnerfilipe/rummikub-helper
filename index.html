@@ -80,6 +80,33 @@
       .modal-content {
         animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
+
+      /* Winner modal badge styles */
+      #modalWinnerBadge {
+        font-size: 0.95rem;
+        padding: 0.25rem 0.6rem;
+        box-shadow: 0 8px 20px rgba(2,6,23,0.12);
+        transition: transform 200ms ease, background-color 200ms ease;
+        display: inline-block;
+        line-height: 1;
+      }
+
+      @keyframes badgePulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+      }
+
+      .badge-pulse {
+        animation: badgePulse 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      /* Focus style for confirm button (accessibility) */
+      #confirmWinnerBtn:focus {
+        outline: 3px solid rgba(234,88,12,0.18);
+        outline-offset: 3px;
+        border-radius: 10px;
+      }
       .editing-round-row {
         background-color: #fff7ed;
         box-shadow: 0 4px 15px -3px rgba(234, 88, 12, 0.2);
@@ -1424,6 +1451,10 @@
     <!-- 4. DIALOG CONFIRMAÇÃO VENCEDOR -->
     <div
       id="winnerModal"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="winnerModalTitle"
+      aria-describedby="winnerModalMsg"
       class="hidden fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div
@@ -1431,45 +1462,25 @@
       >
         <div class="text-center mb-6">
           <div class="bg-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl relative">
-            <span class="text-3xl">🏆</span>
-            <span id="modalWinnerBadge" class="absolute -bottom-2 right-0 bg-emerald-600 text-white text-sm font-black px-2 py-1 rounded-full transform translate-x-1/4">+0</span>
+            <span class="text-3xl" aria-hidden="true">🏆</span>
+            <span id="modalWinnerBadge" role="status" aria-live="polite" class="absolute -bottom-2 right-0 bg-emerald-600 text-white text-base font-black px-2 py-1 rounded-full transform translate-x-1/4">+0</span>
           </div>
-          <h3 class="text-xl font-black text-slate-800">Confirmar Vencedor?</h3>
-          <p id="winnerModalMsg" class="text-slate-500 mt-2 text-sm">
+          <h3 id="winnerModalTitle" class="text-xl font-black text-slate-800">Confirmar Vencedor?</h3>
+          <p id="winnerModalMsg" class="text-slate-500 mt-2 text-sm" aria-live="polite">
             O sistema calculou a pontuação para equilibrar a rodada.
           </p>
         </div>
         <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-bold text-slate-500 uppercase"
-              >Jogador</span
-            ><span class="text-sm font-bold text-slate-500 uppercase"
-              >Pontos</span
-            >
+            <span class="text-sm font-bold text-slate-500 uppercase">Jogador</span><span class="text-sm font-bold text-slate-500 uppercase">Pontos</span>
           </div>
           <div class="flex justify-between items-center">
-            <span id="modalWinnerName" class="text-lg font-bold text-slate-800"
-              >Nome</span
-            ><span
-              id="modalWinnerScore"
-              class="text-2xl font-black text-emerald-600"
-              >+0</span
-            >
+            <span id="modalWinnerName" class="text-lg font-bold text-slate-800">Nome</span><span id="modalWinnerScore" class="text-2xl font-black text-emerald-600">+0</span>
           </div>
         </div>
         <div class="flex gap-3">
-          <button
-            onclick="closeWinnerModal()"
-            class="flex-1 py-3.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onclick="confirmWinner()"
-            class="flex-1 py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-slate-800 active:scale-95"
-          >
-            Confirmar
-          </button>
+          <button id="closeWinnerBtn" onclick="closeWinnerModal()" class="flex-1 py-3.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
+          <button id="confirmWinnerBtn" onclick="confirmWinner()" class="flex-1 py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-slate-800 active:scale-95">Confirmar</button>
         </div>
       </div>
     </div>
@@ -3493,6 +3504,8 @@
         const scoreEl = document.getElementById("modalWinnerScore");
         const badgeEl = document.getElementById("modalWinnerBadge");
         const msgEl = document.getElementById("winnerModalMsg");
+        const modal = document.getElementById("winnerModal");
+        const confirmBtn = document.getElementById("confirmWinnerBtn");
 
         if (nameEl) nameEl.textContent = name;
 
@@ -3502,13 +3515,27 @@
           badgeEl.textContent = sStr;
           badgeEl.classList.remove("bg-emerald-600", "bg-rose-600");
           badgeEl.classList.add(score >= 0 ? "bg-emerald-600" : "bg-rose-600");
+          // trigger pulse animation
+          badgeEl.classList.remove("badge-pulse");
+          void badgeEl.offsetWidth; // force reflow
+          badgeEl.classList.add("badge-pulse");
+          // remove the class after animation to keep DOM clean
+          setTimeout(() => badgeEl.classList.remove("badge-pulse"), 700);
         }
 
         if (msgEl)
           msgEl.textContent = `Pontos calculados: ${sStr}. Confirme para aplicar e encerrar a rodada.`;
 
         pendingCalculation = { roundIdx, playerIdx, score };
-        document.getElementById("winnerModal").classList.remove("hidden");
+        modal.classList.remove("hidden");
+
+        // foco no botão confirmar para melhor acessibilidade
+        if (confirmBtn && confirmBtn.focus) {
+          confirmBtn.focus();
+        }
+
+        // som de confirmação leve
+        if (typeof Sound !== "undefined" && Sound.tick) Sound.tick();
       }
 
       function confirmWinner() {
