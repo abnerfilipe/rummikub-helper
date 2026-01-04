@@ -1251,7 +1251,7 @@
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                class="w-5 h-5"
+                class="w-5 h-5 trophy-icon trophy-icon--med"
                 aria-hidden="true"
               >
                 <path
@@ -1261,6 +1261,7 @@
                   d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"
                 />
               </svg>
+              <span id="tileCalcWinnerLabel" class="ml-2 hidden sm:inline text-sm font-black text-yellow-800">Vencedor</span>
             </button>
             <button
               onclick="TileCalc.close()"
@@ -1477,10 +1478,13 @@
       >
         <div class="text-center mb-6">
           <div class="bg-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl relative">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-8 h-8 trophy-icon trophy-icon--lg text-yellow-600" aria-hidden="true">
-              <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z"/>
-              <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"/>
-            </svg>
+            <div class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-8 h-8 trophy-icon trophy-icon--lg text-yellow-600" aria-hidden="true">
+                <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z"/>
+                <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"/>
+              </svg>
+              <span id="modalWinnerLabel" class="text-sm font-black text-yellow-800 bg-yellow-50 px-2 py-1 rounded-full">Vencedor</span>
+            </div>
             <span id="modalWinnerBadge" role="status" aria-live="polite" class="absolute -bottom-2 right-0 bg-emerald-600 text-white text-base font-black px-2 py-1 rounded-full transform translate-x-1/4">+0</span>
           </div>
           <h3 id="winnerModalTitle" class="text-xl font-black text-slate-800">Confirmar Vencedor?</h3>
@@ -1837,17 +1841,10 @@
               "aria-label",
               isWinner ? "Vencedor" : "Marcar como vencedor"
             );
-          }
 
-          const notice = document.getElementById("tileCalcWinnerNotice");
-          if (notice) notice.classList.toggle("hidden", !isWinner);
-
-          const totalLabel = document.getElementById("tileCalcTotalLabel");
-          if (totalLabel) totalLabel.textContent = isWinner ? "Vencedor" : "Total";
-
-          const totalDesc = document.getElementById("tileCalcTotalDesc");
-          if (totalDesc)
-            totalDesc.textContent = isWinner
+            // Mostrar/ocultar rótulo textual ao lado do ícone
+            const lbl = winnerBtn.querySelector('#tileCalcWinnerLabel');
+            if (lbl) lbl.classList.toggle('hidden', !isWinner);
               ? "Pontuação automática"
               : "Lançado negativo";
 
