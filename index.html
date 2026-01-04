@@ -396,6 +396,17 @@
               />
             </svg>
           </button>
+
+          <button
+            id="btnSkipTurn"
+            title="Pular turno"
+            onclick="Actions.confirmSkipTurn()"
+            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5v14M5 12h9" />
+            </svg>
+          </button> 
           <button
             id="btnToggleTimer"
             onclick="Actions.toggleTimer()"
@@ -1523,11 +1534,20 @@
           </div>
         </div>
 
-        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-6">
+        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-4">
           <span class="text-sm font-bold text-slate-700">Rotação automática</span>
           <input
             type="checkbox"
             id="autoRotateToggle"
+            class="w-6 h-6 accent-orange-600 rounded"
+          />
+        </div>
+
+        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-6">
+          <span class="text-sm font-bold text-slate-700">Confirmar ao expirar</span>
+          <input
+            type="checkbox"
+            id="confirmOnExpiry"
             class="w-6 h-6 accent-orange-600 rounded"
           />
         </div>
@@ -1730,6 +1750,16 @@
             this.game.timeRule = minutes === 1 ? 'official' : minutes === 2 ? 'alternative' : 'custom';
           }
           if (typeof this.game.turnAutoRotate === 'undefined') this.game.turnAutoRotate = true;
+          if (typeof this.game.confirmExpiry === 'undefined') this.game.confirmExpiry = false;
+          if (typeof this.game.penalties === 'undefined' || this.game.penalties === null || typeof this.game.penalties !== 'object') this.game.penalties = {};
+
+          // Defaults relacionados à rotação e regras de tempo
+          if (typeof this.game.turnIdx === 'undefined') this.game.turnIdx = 0;
+          if (typeof this.game.timeRule === 'undefined') {
+            const minutes = Math.round(this.timer.d / 60);
+            this.game.timeRule = minutes === 1 ? 'official' : minutes === 2 ? 'alternative' : 'custom';
+          }
+          if (typeof this.game.turnAutoRotate === 'undefined') this.game.turnAutoRotate = true;
           if (typeof this.game.penalties === 'undefined' || this.game.penalties === null || typeof this.game.penalties !== 'object') this.game.penalties = {};
         },
         save() {
@@ -1871,7 +1901,6 @@
           else Timer.start();
         },
         handleExpiry() {
-          // Quem estava no turno?
           const pIdx = typeof State.game.turnIdx === 'number' ? State.game.turnIdx : 0;
           const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
           const rule = State.game.timeRule || 'official';
@@ -1881,22 +1910,54 @@
           else if (rule === 'alternative') draws = 1;
           else if (rule === 'impatient') draws = 1;
 
-          const msg = `${name} estourou o tempo (${rule === 'official' ? 'Oficial' : rule === 'alternative' ? 'Alternativa' : rule === 'impatient' ? 'Variação' : 'Personalizado'}). Penalidade: comprar ${draws} peça(s). Devolver peças jogadas à posição original.`;
+          const ruleLabel = rule === 'official' ? 'Oficial' : rule === 'alternative' ? 'Alternativa' : rule === 'impatient' ? 'Variação' : 'Personalizado';
 
-          showConfirm('Tempo Expirado', msg, () => {
-            // registrar penalidade
+          const applyExpiry = () => {
+            // Registrar penalidade
             if (!State.game.penalties) State.game.penalties = {};
             State.game.penalties[pIdx] = (State.game.penalties[pIdx] || 0) + draws;
-            // rotacionar para o próximo jogador
-            Actions.rotateToNextPlayer();
+
+            // Reverter quaisquer peças registradas para essa rodada/jogador (se houver)
+            const activeRoundIdx =
+              State.game.editingIdx !== null && typeof State.game.editingIdx === 'number'
+                ? State.game.editingIdx
+                : State.game.currIdx;
+            const key = `${activeRoundIdx}-${pIdx}`;
+            let reverted = false;
+            if (State.game.tileDetails && State.game.tileDetails[key]) {
+              delete State.game.tileDetails[key];
+              reverted = true;
+            }
+
+            // Persistir e atualizar UI
             State.save();
             Render.playersManager();
-            // iniciar automaticamente o próximo turno se configurado
+
+            const nextIdx = (pIdx + 1) % (State.game.players.length || 1);
+            const nextName = State.game.players[nextIdx] || `Jogador ${nextIdx + 1}`;
+
+            // Mensagem curta para o toast
+            const toastMsg = `${name} estourou o tempo (${ruleLabel}). Penalidade: +${draws} peça(s). ${reverted ? 'Peças devolvidas.' : 'Sem peças registradas.'} Próximo: ${nextName}.`;
+            showToast(toastMsg);
+
+            // Avança para próximo jogador
+            Actions.rotateToNextPlayer();
+
+            // Reinicia automaticamente se configurado
             if (State.game.turnAutoRotate) {
               State.timer.c = State.timer.d;
               Timer.start();
             }
-          });
+          };
+
+          if (State.game.confirmExpiry) {
+            const msg = `${name} estourou o tempo (${ruleLabel}). Ao confirmar, as peças jogadas (se registradas) serão devolvidas e o jogador comprará ${draws} peça(s).`;
+            showConfirm('Tempo Expirado', msg, applyExpiry);
+            return;
+          }
+
+          // Aplica automaticamente
+          applyExpiry();
         },
         reset() {
           State.timer.r = false;
@@ -2895,6 +2956,7 @@
           const radio = document.querySelector(`input[name=\"timeRule\"][value=\"${rule}\"]`);
           if (radio) radio.checked = true;
           document.getElementById("autoRotateToggle").checked = State.game.turnAutoRotate !== false;
+          document.getElementById("confirmOnExpiry").checked = State.game.confirmExpiry === true;
         },
         closeTimerSettings() {
           document.getElementById("timerModal").classList.add("hidden");
@@ -2929,7 +2991,9 @@
           State.timer.s = document.getElementById("soundToggle").checked;
           State.game.timeRule = rule;
           State.game.turnAutoRotate = document.getElementById("autoRotateToggle").checked;
+          State.game.confirmExpiry = document.getElementById("confirmOnExpiry").checked === true;
           State.saveTimer();
+          State.save();
           Timer.reset();
           this.closeTimerSettings();
         },
@@ -2940,6 +3004,22 @@
           State.save();
           Render.playersManager();
           Timer.updateUI();
+        },
+        confirmSkipTurn() {
+          const pIdx = typeof State.game.turnIdx === 'number' ? State.game.turnIdx : 0;
+          const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          showConfirm('Pular turno?', `Deseja pular o turno de ${name}?`, () => {
+            this.skipTurn();
+          });
+        },
+        skipTurn() {
+          const wasRunning = State.timer.r;
+          // Sem penalidade automática; apenas rotaciona
+          this.rotateToNextPlayer();
+          Timer.reset();
+          if (wasRunning || State.game.turnAutoRotate) {
+            Timer.start();
+          }
         },
       };
 
@@ -3630,6 +3710,20 @@
         document.getElementById("gameOverModal").classList.add("hidden");
       }
 
+      // Toast notification (não bloqueante)
+      function showToast(msg, timeout = 4500) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const el = document.createElement('div');
+        el.className = 'toast px-4 py-2 rounded-xl shadow-lg bg-slate-900 text-white text-sm mb-2';
+        el.innerText = msg;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.classList.add('toast-fade');
+          setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300);
+        }, timeout);
+      }
+
       function restartFromGameOver() {
         closeGameOverModal();
         confirmReset();
@@ -3786,6 +3880,12 @@
       State.init();
       Timer.updateUI();
       Render.all();
+
+      // Container para toasts
+      const tCont = document.createElement('div');
+      tCont.id = 'toastContainer';
+      tCont.className = 'fixed bottom-6 right-6 z-50';
+      document.body.appendChild(tCont);
     </script>
   </body>
 </html>
