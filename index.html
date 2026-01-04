@@ -1245,6 +1245,24 @@
         </div>
         <div id="eventLogList" class="max-h-[50vh] overflow-auto space-y-2 text-sm text-slate-700"></div>
       </div>
+    </div>
+
+    <!-- PENALTY ADJUST MODAL -->
+    <div id="penaltyAdjustModal" class="hidden fixed inset-0 z-[92] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content">
+        <h3 class="text-lg font-black text-slate-800 mb-2">Ajustar penalidade</h3>
+        <div class="text-sm text-slate-600 mb-3">Jogador: <span id="penaltyAdjustName" class="font-bold"></span></div>
+        <div class="flex items-center gap-2 mb-4">
+          <button type="button" onclick="(function(){const el=document.getElementById('penaltyAdjustAmount'); el.value = (parseInt(el.value||'0',10)||0)-1})()" class="px-3 py-2 rounded-lg bg-slate-50">-</button>
+          <input id="penaltyAdjustAmount" type="number" class="w-full border border-slate-200 rounded-xl p-3 text-center" value="1" />
+          <button type="button" onclick="(function(){const el=document.getElementById('penaltyAdjustAmount'); el.value = (parseInt(el.value||'0',10)||0)+1})()" class="px-3 py-2 rounded-lg bg-slate-50">+</button>
+        </div>
+        <div class="text-xs text-slate-500 mb-4">Use valores negativos para reduzir penalidades (-1 reduz uma peça).</div>
+        <div class="flex gap-3">
+          <button onclick="Actions.closePenaltyAdjust()" class="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+          <button onclick="Actions.applyPenaltyAdjust()" class="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl">Aplicar</button>
+        </div>
+      </div>
     </div> 
     <div
       id="errorModal"
@@ -3087,7 +3105,37 @@
           Render.playersManager();
           showToast(`Penalidade adicionada: +${count}`);
           showEvent(`Penalidade adicionada manualmente: Jogador #${pIdx + 1} recebeu +${count} peça(s).`);
-        }
+        },
+        openPenaltyAdjust(pIdx) {
+          State.uiPenaltyAdjust = { pIdx };
+          const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          const amountEl = document.getElementById('penaltyAdjustAmount');
+          if (amountEl) amountEl.value = 1;
+          const nameEl = document.getElementById('penaltyAdjustName');
+          if (nameEl) nameEl.innerText = name;
+          const modal = document.getElementById('penaltyAdjustModal');
+          if (modal) modal.classList.remove('hidden');
+          if (amountEl && amountEl.focus) amountEl.focus();
+        },
+        closePenaltyAdjust() {
+          const modal = document.getElementById('penaltyAdjustModal');
+          if (modal) modal.classList.add('hidden');
+          State.uiPenaltyAdjust = null;
+        },
+        applyPenaltyAdjust() {
+          const s = State.uiPenaltyAdjust;
+          if (!s) return;
+          const pIdx = s.pIdx;
+          const raw = parseInt(document.getElementById('penaltyAdjustAmount').value, 10);
+          if (Number.isNaN(raw)) { showError('Informe um número válido.'); return; }
+          if (!State.game.penalties) State.game.penalties = {};
+          State.game.penalties[pIdx] = Math.max(0, (State.game.penalties[pIdx] || 0) + raw);
+          State.save();
+          Render.playersManager();
+          showToast(`Penalidade ajustada: ${raw >= 0 ? '+' : ''}${raw}`);
+          showEvent(`Penalidade ajustada: Jogador #${pIdx + 1} ${raw >= 0 ? 'recebeu' : 'reduziu'} ${Math.abs(raw)} peça(s).`);
+          this.closePenaltyAdjust();
+        },
         confirmSkipTurn() {
           const pIdx = typeof State.game.turnIdx === 'number' ? State.game.turnIdx : 0;
           const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
@@ -3292,7 +3340,7 @@
                   <div class="text-sm font-black text-rose-600">${penaltyCount}</div>
                   <div class="text-xs text-slate-400 mt-0.5">Peças</div>
                   <div class="mt-2 flex items-center justify-center gap-1">
-                    <button onclick="Actions.addPenalty(${idx})" class="w-7 h-7 rounded-md bg-rose-50 text-rose-600 font-bold">+</button>
+                    <button onclick="Actions.openPenaltyAdjust(${idx})" class="w-7 h-7 rounded-md bg-rose-50 text-rose-600 font-bold">+</button>
                     <button onclick="Actions.markPenaltyPaid(${idx})" class="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 font-bold">✓</button>
                   </div>
                 </div>
