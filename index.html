@@ -101,6 +101,21 @@
         animation: badgePulse 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
       }
 
+      /* Trophy icon styles */
+      .trophy-icon {
+        display: inline-block;
+        color: inherit;
+        transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+        filter: drop-shadow(0 6px 18px rgba(2,6,23,0.08));
+      }
+      .trophy-icon:hover {
+        transform: translateY(-2px) scale(1.06);
+        filter: drop-shadow(0 10px 24px rgba(2,6,23,0.12));
+      }
+      .trophy-icon--small { width: 1rem; height: 1rem; }
+      .trophy-icon--med { width: 1.25rem; height: 1.25rem; }
+      .trophy-icon--lg { width: 1.5rem; height: 1.5rem; }
+
       /* Focus style for confirm button (accessibility) */
       #confirmWinnerBtn:focus {
         outline: 3px solid rgba(234,88,12,0.18);
@@ -1462,7 +1477,10 @@
       >
         <div class="text-center mb-6">
           <div class="bg-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl relative">
-            <span class="text-3xl" aria-hidden="true">🏆</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-8 h-8 trophy-icon trophy-icon--lg" aria-hidden="true">
+              <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z"/>
+              <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"/>
+            </svg>
             <span id="modalWinnerBadge" role="status" aria-live="polite" class="absolute -bottom-2 right-0 bg-emerald-600 text-white text-base font-black px-2 py-1 rounded-full transform translate-x-1/4">+0</span>
           </div>
           <h3 id="winnerModalTitle" class="text-xl font-black text-slate-800">Confirmar Vencedor?</h3>
@@ -2784,7 +2802,7 @@
           `;
 
           const trophySvg =
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
 
           ranked.forEach((p, rank) => {
             const isLead = rank === 0;
@@ -3253,7 +3271,7 @@
           }
 
           const trophySvg =
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
 
           visible.forEach((p, rank) => {
             const isLead = rank === 0;
@@ -3435,7 +3453,7 @@
 
         let html = "";
         const trophySvg =
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
 
         ranked.forEach((p, rank) => {
           const isLead = rank === 0;
