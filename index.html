@@ -1297,6 +1297,7 @@
           <h3 class="text-lg font-black text-slate-800">Histórico do jogador</h3>
           <div class="flex gap-2">
             <button onclick="Actions.exportPlayerHistoryCSV()" class="px-3 py-2 rounded-xl bg-slate-100">Exportar CSV</button>
+            <button onclick="Actions.clearPlayerHistory()" class="px-3 py-2 rounded-xl bg-rose-100 text-rose-700">Limpar histórico</button>
             <button onclick="Actions.closePlayerHistory()" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Fechar</button>
           </div>
         </div>
@@ -3181,6 +3182,23 @@
           modal.classList.remove('hidden');
           Render.playerHistory(pIdx);
         },
+        clearPlayerHistory() {
+          const s = State.uiPlayerHistory;
+          if (!s) return showError('Nenhum jogador selecionado.');
+          const pIdx = s.pIdx;
+          const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          showConfirm('Limpar histórico?', `Deseja remover todo o histórico de turno de ${name}? Esta ação não pode ser desfeita.`, () => {
+            if (State.game.turnHistory) {
+              Object.keys(State.game.turnHistory).forEach(rk => {
+                if (State.game.turnHistory[rk]) delete State.game.turnHistory[rk][pIdx];
+              });
+            }
+            State.save();
+            Render.playerHistory(pIdx);
+            showToast('Histórico limpo.');
+            showEvent(`Histórico limpo: Jogador #${pIdx + 1}`);
+          });
+        },
         closePlayerHistory() {
           const modal = document.getElementById('playerHistoryModal');
           if (modal) modal.classList.add('hidden');
@@ -3397,11 +3415,53 @@
               rows.push({ rIdx, entry });
             });
           });
+
+          // Aggregate summary
+          const totalTurns = rows.length;
+          const totalTime = rows.reduce((acc, r) => acc + (r.entry.durationSeconds || 0), 0);
+          const avgTime = totalTurns > 0 ? Math.round(totalTime / totalTurns) : 0;
+          const totalPenaltyPieces = rows.reduce((acc, r) => acc + (r.entry.penaltyApplied || 0), 0);
+          const confirmedPenaltyPieces = rows.reduce((acc, r) => acc + ((r.entry.penaltyConfirmed === true && r.entry.penaltyApplied) ? r.entry.penaltyApplied : 0), 0);
+          const pendingPenaltyPieces = rows.reduce((acc, r) => acc + ((r.entry.penaltyConfirmed === null && r.entry.penaltyApplied) ? r.entry.penaltyApplied : 0), 0);
+
+          const fmt = (s) => {
+            if (s < 60) return `${s}s`;
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${m}m ${sec}s`;
+          };
+
           if (rows.length === 0) {
             wrap.innerHTML = '<div class="text-sm text-slate-500">Nenhum histórico disponível para este jogador.</div>';
             return;
           }
-          wrap.innerHTML = rows
+
+          const summaryHtml = `<div class="p-3 rounded-lg border border-slate-100 bg-white mb-3">
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <div class="text-sm text-slate-500">Total de turnos</div>
+                  <div class="text-lg font-black text-slate-800">${totalTurns}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-slate-500">Tempo total</div>
+                  <div class="text-lg font-black text-slate-800">${fmt(totalTime)}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-slate-500">Tempo médio</div>
+                  <div class="text-lg font-black text-slate-800">${fmt(avgTime)}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-slate-500">Penalidades (peças)</div>
+                  <div class="text-lg font-black text-rose-600">${totalPenaltyPieces}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-slate-500">Confirmadas / Pendentes</div>
+                  <div class="text-lg font-black text-slate-700">${confirmedPenaltyPieces} / ${pendingPenaltyPieces}</div>
+                </div>
+              </div>
+            </div>`;
+
+          wrap.innerHTML = summaryHtml + rows
             .sort((a,b) => (a.rIdx - b.rIdx))
             .map(r => {
               const e = r.entry;
