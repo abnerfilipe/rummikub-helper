@@ -3152,7 +3152,7 @@
           // clear ui current
           State.uiCurrentTurn = null;
           showEvent(`Fim do turno: [Rodada ${rIdx + 1}] Jogador #${pIdx + 1} — ${duration}s ${penaltyApplied > 0 ? `(penalidade +${penaltyApplied})` : ''}`);
-        }
+        },
         openEventLog() {
           document.getElementById('eventLogModal').classList.remove('hidden');
           Render.eventLog();
@@ -3242,7 +3242,7 @@
           Render.playersManager();
           showToast('Ação desfeita.');
           showEvent(`Ação de limpeza desfeita: Jogador #${pIdx + 1}`);
-        }
+        },
         clearPlayerHistoryAndPenalties() {
           const s = State.uiPlayerHistory;
           if (!s) return showError('Nenhum jogador selecionado.');
