@@ -3189,42 +3189,108 @@
           const pIdx = s.pIdx;
           const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
           showConfirm('Limpar histórico?', `Deseja remover todo o histórico de turno de ${name}? Esta ação não pode ser desfeita.`, () => {
+            // keep an undo backup only for the history clean (short undo)
+            const historyBackup = {};
             if (State.game.turnHistory) {
               Object.keys(State.game.turnHistory).forEach(rk => {
-                if (State.game.turnHistory[rk]) delete State.game.turnHistory[rk][pIdx];
+                const rIdx = rk;
+                if (State.game.turnHistory[rIdx] && State.game.turnHistory[rIdx][pIdx]) {
+                  historyBackup[rIdx] = JSON.parse(JSON.stringify(State.game.turnHistory[rIdx][pIdx]));
+                  delete State.game.turnHistory[rIdx][pIdx];
+                }
               });
             }
             State.save();
             Render.playerHistory(pIdx);
             showToast('Histórico limpo.');
             showEvent(`Histórico limpo: Jogador #${pIdx + 1}`);
+
+            // setup quick-undo for simple history clear
+            if (typeof LastClearUndo !== 'undefined' && LastClearUndo && LastClearUndo.timeoutId) {
+              try { clearTimeout(LastClearUndo.timeoutId); } catch (e) {}
+            }
+            LastClearUndo = { pIdx, historyBackup, penaltiesBackup: {}, timeoutId: null };
+            showUndoToast('Histórico limpo.', 'Desfazer', () => Actions.undoLastClear(), 8000);
           });
         },
+        undoLastClear() {
+          if (!LastClearUndo) return showError('Nada para desfazer.');
+          const { pIdx, historyBackup, penaltiesBackup } = LastClearUndo;
+          // restore history
+          if (historyBackup && Object.keys(historyBackup).length > 0) {
+            if (!State.game.turnHistory) State.game.turnHistory = {};
+            Object.keys(historyBackup).forEach(rk => {
+              const rIdx = rk;
+              if (!State.game.turnHistory[rIdx]) State.game.turnHistory[rIdx] = {};
+              State.game.turnHistory[rIdx][pIdx] = historyBackup[rk];
+            });
+          }
+          // restore penalties
+          if (penaltiesBackup && Object.keys(penaltiesBackup).length > 0) {
+            if (!State.game.roundPenalties) State.game.roundPenalties = {};
+            Object.keys(penaltiesBackup).forEach(rk => {
+              const rIdx = rk;
+              if (!State.game.roundPenalties[rIdx]) State.game.roundPenalties[rIdx] = {};
+              State.game.roundPenalties[rIdx][pIdx] = penaltiesBackup[rk];
+            });
+          }
+          // cleanup
+          if (LastClearUndo && LastClearUndo.timeoutId) try { clearTimeout(LastClearUndo.timeoutId); } catch (e) {}
+          LastClearUndo = null;
+          State.save();
+          Render.playerHistory(pIdx);
+          Render.playersManager();
+          showToast('Ação desfeita.');
+          showEvent(`Ação de limpeza desfeita: Jogador #${pIdx + 1}`);
+        }
         clearPlayerHistoryAndPenalties() {
           const s = State.uiPlayerHistory;
           if (!s) return showError('Nenhum jogador selecionado.');
           const pIdx = s.pIdx;
           const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
-          showConfirm('Limpar histórico e penalidades?', `Deseja remover todo o histórico de turno e todas as penalidades deste jogador (${name}) em todas as rodadas? Esta ação não pode ser desfeita.`, () => {
-            // remove history entries
+          showConfirm('Limpar histórico e penalidades?', `Deseja remover todo o histórico de turno e todas as penalidades deste jogador (${name}) em todas as rodadas? Esta ação poderá ser desfeita por alguns segundos.`, () => {
+            // backup history and penalties
+            const historyBackup = {};
             if (State.game.turnHistory) {
               Object.keys(State.game.turnHistory).forEach(rk => {
-                if (State.game.turnHistory[rk]) delete State.game.turnHistory[rk][pIdx];
-              });
-            }
-            // remove penalties across all rounds for this player
-            if (State.game.roundPenalties) {
-              Object.keys(State.game.roundPenalties).forEach(rk => {
-                if (State.game.roundPenalties[rk] && typeof State.game.roundPenalties[rk][pIdx] !== 'undefined') {
-                  delete State.game.roundPenalties[rk][pIdx];
+                const rIdx = rk;
+                if (State.game.turnHistory[rIdx] && State.game.turnHistory[rIdx][pIdx]) {
+                  historyBackup[rIdx] = JSON.parse(JSON.stringify(State.game.turnHistory[rIdx][pIdx]));
+                  delete State.game.turnHistory[rIdx][pIdx];
                 }
               });
             }
+            const penaltiesBackup = {};
+            if (State.game.roundPenalties) {
+              Object.keys(State.game.roundPenalties).forEach(rk => {
+                const rIdx = rk;
+                if (State.game.roundPenalties[rIdx] && typeof State.game.roundPenalties[rIdx][pIdx] !== 'undefined') {
+                  penaltiesBackup[rIdx] = State.game.roundPenalties[rIdx][pIdx];
+                  delete State.game.roundPenalties[rIdx][pIdx];
+                }
+              });
+            }
+
+            // persist changes
             State.save();
             Render.playerHistory(pIdx);
             Render.playersManager();
-            showToast('Histórico e penalidades limpos.');
-            showEvent(`Histórico e penalidades limpos: Jogador #${pIdx + 1}`);
+
+            // set LastClearUndo with expiration (10s)
+            if (typeof LastClearUndo !== 'undefined' && LastClearUndo && LastClearUndo.timeoutId) {
+              try { clearTimeout(LastClearUndo.timeoutId); } catch (e) {}
+            }
+            LastClearUndo = {
+              pIdx,
+              historyBackup,
+              penaltiesBackup,
+              timeoutId: null,
+            };
+
+            // show undo toast (10s)
+            showUndoToast('Histórico e penalidades limpos.', 'Desfazer', () => Actions.undoLastClear(), 10000);
+
+            showEvent(`Histórico e penalidades limpos (undo disponível): Jogador #${pIdx + 1}`);
           });
         },
         closePlayerHistory() {
@@ -4227,6 +4293,42 @@
           el.classList.add('toast-fade');
           setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300);
         }, timeout);
+      }
+
+      // Toast com ação (Desfazer)
+      let LastClearUndo = null; // { pIdx, historyBackup, penaltiesBackup, timeoutId }
+      function showUndoToast(msg, actionLabel, actionCb, timeout = 10000) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        // remove previous undo toast if exists
+        const prev = container.querySelector('.toast-undo');
+        if (prev) { try { container.removeChild(prev); } catch (e) {} }
+        const el = document.createElement('div');
+        el.className = 'toast-undo px-4 py-2 rounded-xl shadow-lg bg-slate-900 text-white text-sm mb-2 flex items-center gap-3';
+        const span = document.createElement('span');
+        span.innerText = msg;
+        const btn = document.createElement('button');
+        btn.className = 'ml-2 px-3 py-1 rounded bg-orange-500 text-white font-bold';
+        btn.innerText = actionLabel;
+        btn.onclick = () => {
+          try { actionCb(); } catch (e) { console.warn(e); }
+          try { el.classList.add('toast-fade'); setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300); } catch (e) {}
+        };
+        el.appendChild(span);
+        el.appendChild(btn);
+        container.appendChild(el);
+        // auto-remove after timeout
+        const tid = setTimeout(() => {
+          try { el.classList.add('toast-fade'); setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300); } catch (e) {}
+          // clear LastClearUndo when expired
+          if (LastClearUndo && LastClearUndo.timeoutId === tid) {
+            LastClearUndo = null;
+          }
+        }, timeout);
+        // store last tid in LastClearUndo if present
+        if (LastClearUndo) {
+          LastClearUndo.timeoutId = tid;
+        }
       }
 
       // Registrar evento (persistente)
