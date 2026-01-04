@@ -1298,6 +1298,7 @@
           <div class="flex gap-2">
             <button onclick="Actions.exportPlayerHistoryCSV()" class="px-3 py-2 rounded-xl bg-slate-100">Exportar CSV</button>
             <button onclick="Actions.clearPlayerHistory()" class="px-3 py-2 rounded-xl bg-rose-100 text-rose-700">Limpar histórico</button>
+            <button onclick="Actions.clearPlayerHistoryAndPenalties()" class="px-3 py-2 rounded-xl bg-rose-700 text-white">Limpar histórico + penalidades</button>
             <button onclick="Actions.closePlayerHistory()" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Fechar</button>
           </div>
         </div>
@@ -3197,6 +3198,33 @@
             Render.playerHistory(pIdx);
             showToast('Histórico limpo.');
             showEvent(`Histórico limpo: Jogador #${pIdx + 1}`);
+          });
+        },
+        clearPlayerHistoryAndPenalties() {
+          const s = State.uiPlayerHistory;
+          if (!s) return showError('Nenhum jogador selecionado.');
+          const pIdx = s.pIdx;
+          const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          showConfirm('Limpar histórico e penalidades?', `Deseja remover todo o histórico de turno e todas as penalidades deste jogador (${name}) em todas as rodadas? Esta ação não pode ser desfeita.`, () => {
+            // remove history entries
+            if (State.game.turnHistory) {
+              Object.keys(State.game.turnHistory).forEach(rk => {
+                if (State.game.turnHistory[rk]) delete State.game.turnHistory[rk][pIdx];
+              });
+            }
+            // remove penalties across all rounds for this player
+            if (State.game.roundPenalties) {
+              Object.keys(State.game.roundPenalties).forEach(rk => {
+                if (State.game.roundPenalties[rk] && typeof State.game.roundPenalties[rk][pIdx] !== 'undefined') {
+                  delete State.game.roundPenalties[rk][pIdx];
+                }
+              });
+            }
+            State.save();
+            Render.playerHistory(pIdx);
+            Render.playersManager();
+            showToast('Histórico e penalidades limpos.');
+            showEvent(`Histórico e penalidades limpos: Jogador #${pIdx + 1}`);
           });
         },
         closePlayerHistory() {
