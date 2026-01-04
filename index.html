@@ -1288,6 +1288,20 @@
         </div>
         <div id="pendingPenaltiesList" class="max-h-[60vh] overflow-auto space-y-3 text-sm text-slate-700"></div>
       </div>
+    </div>
+
+    <!-- PLAYER HISTORY MODAL -->
+    <div id="playerHistoryModal" class="hidden fixed inset-0 z-[94] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 modal-content">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-black text-slate-800">Histórico do jogador</h3>
+          <div class="flex gap-2">
+            <button onclick="Actions.exportPlayerHistoryCSV()" class="px-3 py-2 rounded-xl bg-slate-100">Exportar CSV</button>
+            <button onclick="Actions.closePlayerHistory()" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Fechar</button>
+          </div>
+        </div>
+        <div id="playerHistoryList" class="max-h-[60vh] overflow-auto space-y-3 text-sm text-slate-700"></div>
+      </div>
     </div> 
     <div
       id="errorModal"
@@ -3159,6 +3173,45 @@
         closePendingPenalties() {
           document.getElementById('pendingPenaltiesModal').classList.add('hidden');
         },
+        openPlayerHistory(pIdx) {
+          State.uiPlayerHistory = { pIdx };
+          const modal = document.getElementById('playerHistoryModal');
+          const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          document.querySelector('#playerHistoryModal h3').innerText = `Histórico — ${name}`;
+          modal.classList.remove('hidden');
+          Render.playerHistory(pIdx);
+        },
+        closePlayerHistory() {
+          const modal = document.getElementById('playerHistoryModal');
+          if (modal) modal.classList.add('hidden');
+          State.uiPlayerHistory = null;
+        },
+        exportPlayerHistoryCSV() {
+          const s = State.uiPlayerHistory;
+          if (!s) return showError('Nenhum jogador selecionado.');
+          const pIdx = s.pIdx;
+          // build CSV
+          const rows = [];
+          rows.push(['round','start','end','duration_seconds','penalty_applied','penalty_confirmed','reason']);
+          const th = State.game.turnHistory || {};
+          Object.keys(th).forEach(rk => {
+            const rIdx = parseInt(rk,10);
+            const perPlayer = th[rIdx] && th[rIdx][pIdx] ? th[rIdx][pIdx] : [];
+            perPlayer.forEach(e => {
+              rows.push([rIdx+1, e.start, e.end, e.durationSeconds, e.penaltyApplied || 0, e.penaltyConfirmed === null ? '' : String(e.penaltyConfirmed), e.reason || '']);
+            });
+          });
+          const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `player_${pIdx + 1}_history.csv`;
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(url);
+          a.remove();
+        }
         confirmPendingPenalty(rIdx, pIdx, entryIdx, confirm) {
           if (!State.game.turnHistory || !State.game.turnHistory[rIdx] || !State.game.turnHistory[rIdx][pIdx]) return;
           const entries = State.game.turnHistory[rIdx][pIdx];
@@ -3331,6 +3384,34 @@
               return `<div class="p-3 rounded-lg border border-slate-100 bg-slate-50"><div class="text-xs text-slate-400">${new Date(r.entry.start).toLocaleString()} — ${new Date(r.entry.end).toLocaleString()}</div><div class="mt-1 text-sm text-slate-800">${pName} — Penalidade aplicada: +${r.entry.penaltyApplied}</div><div class="mt-2 flex gap-2"><button onclick="Actions.confirmPendingPenalty(${active}, ${r.pid}, ${r.idx}, true)" class="px-3 py-2 rounded-lg bg-emerald-600 text-white">Confirmar</button><button onclick="Actions.confirmPendingPenalty(${active}, ${r.pid}, ${r.idx}, false)" class="px-3 py-2 rounded-lg bg-rose-600 text-white">Rejeitar</button></div></div>`;
             })
             .join('');
+        },
+        playerHistory(playerIdx) {
+          const wrap = document.getElementById('playerHistoryList');
+          if (!wrap) return;
+          const rows = [];
+          const th = State.game.turnHistory || {};
+          Object.keys(th).forEach(rk => {
+            const rIdx = parseInt(rk, 10);
+            const perPlayer = th[rIdx] && th[rIdx][playerIdx] ? th[rIdx][playerIdx] : [];
+            perPlayer.forEach(entry => {
+              rows.push({ rIdx, entry });
+            });
+          });
+          if (rows.length === 0) {
+            wrap.innerHTML = '<div class="text-sm text-slate-500">Nenhum histórico disponível para este jogador.</div>';
+            return;
+          }
+          wrap.innerHTML = rows
+            .sort((a,b) => (a.rIdx - b.rIdx))
+            .map(r => {
+              const e = r.entry;
+              const dateRange = `${new Date(e.start).toLocaleString()} — ${new Date(e.end).toLocaleString()}`;
+              const dur = `${e.durationSeconds}s`;
+              const pen = e.penaltyApplied > 0 ? `<span class="text-rose-600 font-bold">+${e.penaltyApplied}</span>` : '<span class="text-slate-400">—</span>';
+              const conf = e.penaltyApplied > 0 ? (e.penaltyConfirmed === null ? '<em class="text-slate-500">(pendente)</em>' : e.penaltyConfirmed ? '<span class="text-emerald-600 font-bold">(confirmada)</span>' : '<span class="text-rose-600 font-bold">(rejeitada)</span>') : '';
+              return `<div class="p-3 rounded-lg border border-slate-100 bg-slate-50"><div class="text-xs text-slate-400">Rodada ${r.rIdx + 1} — ${dateRange}</div><div class="mt-1 text-sm text-slate-800">Duração: ${dur} — Penalidade: ${pen} ${conf}</div></div>`;
+            })
+            .join('');
         }
 
           const activeRoundIdx =
@@ -3489,8 +3570,13 @@
             html += `
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="text-base font-bold text-slate-800 truncate">${name} ${isCurrentTurn ? `<span class="ml-2 inline-block px-2 py-0.5 text-[11px] rounded-full bg-orange-50 text-orange-700 font-black">Atual</span>` : ''}</div>
+                  <div>
+                  <button onclick="Actions.openPlayerHistory(${idx})" class="text-base font-bold text-slate-800 truncate text-left w-full text-sm text-left">
+                    ${name}
+                    ${isCurrentTurn ? `<span class="ml-2 inline-block px-2 py-0.5 text-[11px] rounded-full bg-orange-50 text-orange-700 font-black">Atual</span>` : ''}
+                  </button>
                   <div class="text-xs text-slate-500">Jogador #${idx + 1}</div>
+                </div>
                 </div>
 
                 <div class="w-20 text-center">
