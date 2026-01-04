@@ -1254,6 +1254,289 @@ const Actions = {
             Timer.start();
           }
           showEvent(`Turno pulado manualmente por ação do usuário.`);
-        },
+        }
+};
+// === GLOBAL MODALS & TOASTS ===
+let confirmCallback = null;
+function showConfirm(title, msg, cb) {
+  const t = document.getElementById("confirmTitle");
+  const m = document.getElementById("confirmMsg");
+  if (t) t.innerText = title;
+  if (m) m.innerText = msg;
+  confirmCallback = cb;
+  const modal = document.getElementById("confirmModal");
+  if (modal) modal.classList.remove("hidden");
+}
+function closeConfirm() {
+  const modal = document.getElementById("confirmModal");
+  if (modal) modal.classList.add("hidden");
+  confirmCallback = null;
+}
+function execConfirm() {
+  if (confirmCallback) confirmCallback();
+  closeConfirm();
+}
+function confirmReset() {
+  showConfirm(
+    "Reiniciar Jogo?",
+    "Todos os dados da partida serão perdidos.",
+    () => {
+      State.game = {
+        players: [],
+        rounds: [],
+        currIdx: 0,
+        editingIdx: null,
+        locked: false,
+        started: false,
+        tileDetails: {},
+        roundWinners: {},
+      };
+      State.save();
+      Render.all();
+    }
+  );
+}
 
+function closeGameOverModal() {
+  const m = document.getElementById("gameOverModal");
+  if (m) m.classList.add("hidden");
+}
+
+function showToast(msg, timeout = 4500) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = 'toast px-4 py-2 rounded-xl shadow-lg bg-slate-900 text-white text-sm mb-2';
+  el.innerText = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('toast-fade');
+    setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300);
+  }, timeout);
+}
+
+let LastClearUndo = null; // { pIdx, historyBackup, penaltiesBackup, timeoutId }
+function showUndoToast(msg, actionLabel, actionCb, timeout = 10000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const prev = container.querySelector('.toast-undo');
+  if (prev) { try { container.removeChild(prev); } catch (e) {} }
+  const el = document.createElement('div');
+  el.className = 'toast-undo px-4 py-2 rounded-xl shadow-lg bg-slate-900 text-white text-sm mb-2 flex items-center gap-3';
+  const span = document.createElement('span');
+  span.innerText = msg;
+  const btn = document.createElement('button');
+  btn.className = 'ml-2 px-3 py-1 rounded bg-orange-500 text-white font-bold';
+  btn.innerText = actionLabel;
+  btn.onclick = () => {
+    try { actionCb(); } catch (e) { console.warn(e); }
+    try { el.classList.add('toast-fade'); setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300); } catch (e) {}
+  };
+  el.appendChild(span);
+  el.appendChild(btn);
+  container.appendChild(el);
+  const tid = setTimeout(() => {
+    try { el.classList.add('toast-fade'); setTimeout(() => { try { container.removeChild(el); } catch (e) {} }, 300); } catch (e) {}
+    if (LastClearUndo && LastClearUndo.timeoutId === tid) {
+      LastClearUndo = null;
+    }
+  }, timeout);
+  if (LastClearUndo) {
+    LastClearUndo.timeoutId = tid;
+  }
+}
+
+function showEvent(msg) {
+  try {
+    const ts = new Date().toISOString();
+    if (!Array.isArray(State.game.events)) State.game.events = [];
+    State.game.events.unshift({ ts, msg });
+    if (State.game.events.length > 200) State.game.events.length = 200;
+    State.save();
+    Render.eventLog();
+  } catch (e) {
+    console.warn('Erro ao registrar evento', e);
+  }
+}
+
+function restartFromGameOver() {
+  closeGameOverModal();
+  confirmReset();
+}
+
+function openGameOverModal() {
+  const sums = new Array(State.game.players.length).fill(0);
+  (State.game.rounds || []).forEach((r) => {
+    if (!Array.isArray(r)) return;
+    r.forEach((v, i) => {
+      const n = parseInt(v);
+      if (!isNaN(n)) sums[i] += n;
+    });
+  });
+
+  const ranked = sums
+    .map((s, i) => ({ i, n: State.game.players[i], s }))
+    .sort((a, b) => (b.s - a.s) || (a.i - b.i));
+
+  const winner = ranked.length ? ranked[0] : null;
+  const title = document.getElementById("gameOverTitle");
+  const subtitle = document.getElementById("gameOverSubtitle");
+  const list = document.getElementById("gameOverRanking");
+
+  if (winner) {
+    if (title) title.textContent = `Parabéns, ${winner.n}!`;
+    if (subtitle) subtitle.textContent = "Vencedor(a) da partida. Classificação final:";
+  } else {
+    if (title) title.textContent = "Jogo finalizado!";
+    if (subtitle) subtitle.textContent = "Classificação final:";
+  }
+
+  let html = "";
+  const trophySvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+  ranked.forEach((p, rank) => {
+    const isLead = rank === 0;
+    const isSecond = rank === 1;
+    const isThird = rank === 2;
+
+    const badgeBg = isLead
+      ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+      : isSecond
+      ? "bg-slate-100 border-slate-200 text-slate-700"
+      : isThird
+      ? "bg-orange-100 border-orange-200 text-orange-800"
+      : "bg-slate-100 border-slate-200 text-slate-600";
+
+    const col =
+      p.s > 0
+        ? "text-emerald-600"
+        : p.s < 0
+        ? "text-rose-600"
+        : "text-slate-400";
+
+    const sign = p.s > 0 ? "+" : "";
+    const badgeContent = isLead
+      ? trophySvg
+      : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+    html += `
+      <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+              ${badgeContent}
+            </div>
+            <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+          </div>
+          <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  if (list) list.innerHTML = html;
+  const modal = document.getElementById("gameOverModal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorModalMsg");
+  if (el) el.innerText = msg;
+  const m = document.getElementById("errorModal");
+  if (m) m.classList.remove("hidden");
+}
+
+function showErrorDialog(diff, pos, neg) {
+  const m = document.getElementById("errorModal");
+  const em = document.getElementById("errorModalMsg");
+  if (em) em.innerHTML = `<div class="space-y-3"><p>A soma deve ser zero.</p><div class="flex justify-between text-xs font-bold uppercase bg-slate-50 p-3 rounded-lg border border-slate-200"><div class="text-emerald-600 text-center">Positivos<br><span class="text-lg">+${pos}</span></div><div class="text-rose-600 text-center">Negativos<br><span class="text-lg">${neg}</span></div></div><div class="bg-red-50 p-2 rounded-lg text-center"><p class="text-xs font-bold text-red-800 uppercase mb-1">Diferença</p><p class="text-2xl font-black text-red-600">${
+    diff > 0 ? "+" : ""
+  }${diff}</p></div></div>`;
+  if (m) m.classList.remove("hidden");
+}
+
+let pendingCalculation = null;
+
+function openWinnerModal(roundIdx, playerIdx, score) {
+  const name = (State.game.players && State.game.players[playerIdx]) || "";
+  const nameEl = document.getElementById("modalWinnerName");
+  const scoreEl = document.getElementById("modalWinnerScore");
+  const badgeEl = document.getElementById("modalWinnerBadge");
+  const msgEl = document.getElementById("winnerModalMsg");
+  const modal = document.getElementById("winnerModal");
+  const confirmBtn = document.getElementById("confirmWinnerBtn");
+
+  if (nameEl) nameEl.textContent = name;
+
+  const sStr = `${score > 0 ? "+" : ""}${score}`;
+  if (scoreEl) scoreEl.textContent = sStr;
+  if (badgeEl) {
+    badgeEl.textContent = sStr;
+    badgeEl.classList.remove("bg-emerald-600", "bg-rose-600");
+    badgeEl.classList.add(score >= 0 ? "bg-emerald-600" : "bg-rose-600");
+    // trigger pulse animation
+    badgeEl.classList.remove("badge-pulse");
+    void badgeEl.offsetWidth; // force reflow
+    badgeEl.classList.add("badge-pulse");
+    // remove the class after animation to keep DOM clean
+    setTimeout(() => badgeEl.classList.remove("badge-pulse"), 700);
+  }
+
+  if (msgEl)
+    msgEl.textContent = `Pontos calculados: ${sStr}. Confirme para aplicar e encerrar a rodada.`;
+
+  pendingCalculation = { roundIdx, playerIdx, score };
+  if (modal) modal.classList.remove("hidden");
+
+  // foco no botão confirmar para melhor acessibilidade
+  if (confirmBtn && confirmBtn.focus) {
+    confirmBtn.focus();
+  }
+
+  // som de confirmação leve
+  if (typeof Sound !== "undefined" && Sound.tick) Sound.tick();
+}
+
+function confirmWinner() {
+  if (pendingCalculation) {
+    State.game.rounds[pendingCalculation.roundIdx][
+      pendingCalculation.playerIdx
+    ] = pendingCalculation.score.toString();
+    const w = document.getElementById("winnerModal");
+    if (w) w.classList.add("hidden");
+    Actions.finishAction(pendingCalculation.roundIdx);
+  }
+}
+
+function closeWinnerModal() {
+  const w = document.getElementById("winnerModal");
+  if (w) w.classList.add("hidden");
+  pendingCalculation = null;
+}
+
+// Hook confirm button
+const confirmBtn = document.getElementById("confirmBtnAction");
+if (confirmBtn) confirmBtn.onclick = execConfirm;
+
+// Expose important globals to window for test environments
+if (typeof window !== 'undefined') {
+  try {
+    window.State = State;
+    window.Timer = Timer;
+    window.Actions = typeof Actions !== 'undefined' ? Actions : undefined;
+    // Render may live in index.html if not yet migrated; keep any existing one
+    if (typeof Render !== 'undefined') window.Render = Render;
+  } catch (e) {}
+}
+
+// Inicialização
+State.init();
+Timer.updateUI();
+if (typeof Render !== 'undefined' && Render && typeof Render.all === 'function') Render.all();
+
+// Container para toasts
+const tCont = document.createElement('div');
+tCont.id = 'toastContainer';
+tCont.className = 'fixed bottom-6 right-6 z-50';
+document.body.appendChild(tCont);
   

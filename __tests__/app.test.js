@@ -7,18 +7,38 @@ describe('Rummikub app basic smoke tests', () => {
 
   beforeAll(async () => {
     const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
-    dom = new JSDOM(html, { runScripts: 'outside-only', resources: 'usable' });
+    dom = new JSDOM(html, { runScripts: 'outside-only', resources: 'usable', url: 'http://localhost' });
+    // expose window/document globals so app.js can use bare globals (localStorage, document, etc.)
+    global.window = dom.window;
+    global.document = dom.window.document;
+    global.localStorage = dom.window.localStorage;
+    global.navigator = dom.window.navigator;
+
+    // Provide lightweight stubs for large UI objects that are expected by the script
+    dom.window.Render = {
+      all: () => {},
+      playersManager: () => {},
+      totals: () => {},
+      updateAddPlayerState: () => {},
+      actionButton: () => {},
+      leaderboard: () => {},
+      table: () => {},
+    };
+    global.Render = dom.window.Render;
+
     const script = fs.readFileSync(path.resolve(__dirname, '../app.js'), 'utf8');
 
-    // Evaluate app.js inside the JSDOM window
-    dom.window.eval(script);
+    // Ensure bare globals like localStorage and document resolve inside the window's eval scope
+    const bootScript = 'var localStorage = window.localStorage; var document = window.document; var navigator = window.navigator;';
+    dom.window.eval(bootScript + '\n' + script);
 
     // small delay for any micro-tasks
     await new Promise((r) => setTimeout(r, 20));
   });
 
   test('State and Render objects exist', () => {
-    expect(typeof dom.window.State).toBe('object');
+    // `State` is a lexical binding in the evaluated script (declared with `const`), so use eval to inspect it
+    expect(typeof dom.window.eval('State')).toBe('object');
     expect(typeof dom.window.Render).toBe('object');
   });
 
