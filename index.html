@@ -322,6 +322,13 @@
           >
             Regras
           </button>
+          <button
+            onclick="Actions.switchTab('about')"
+            id="nav-about"
+            class="nav-link flex-1 text-center"
+          >
+            Sobre
+          </button>
         </div>
       </div>
     </header>
@@ -1393,6 +1400,24 @@
             </svg>
             <span>Aplicar</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. ABA SOBRE -->
+    <div id="tab-about" class="hidden">
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-none">
+        <h2 class="text-lg font-black text-slate-800 mb-3">Sobre</h2>
+        <p class="text-sm text-slate-600 mb-3">
+          <strong>Rummikub Helper</strong> é um projeto não oficial para auxiliar no registro de pontuações durante partidas de Rummikub. Foi criado para facilitar partidas presenciais e manter o placar atualizado automaticamente.
+        </p>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          <p><strong>Marcas registradas</strong></p>
+          <p class="mt-2">Rummikub® é marca registrada. Este projeto é não oficial e não é afiliado, endossado ou patrocinado pelo titular da marca. Todos os nomes comerciais, marcas registradas e logotipos usados neste projeto são propriedade de seus respectivos proprietários.</p>
+        </div>
+        <div class="mt-4 text-xs text-slate-500">
+          <p>Projeto hospedado via GitHub Pages: <a href="https://abnerfilipe.github.io/rummikub-helper/" class="underline">https://abnerfilipe.github.io/rummikub-helper/</a></p>
+          <p class="mt-1">Licença: MIT</p>
         </div>
       </div>
     </div>
@@ -2729,6 +2754,9 @@
           document
             .getElementById("tab-rules")
             .classList.toggle("hidden", t !== "rules");
+          document
+            .getElementById("tab-about")
+            .classList.toggle("hidden", t !== "about");
         },
 
         // Timer Settings
