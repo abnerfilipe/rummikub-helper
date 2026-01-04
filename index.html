@@ -1845,6 +1845,17 @@
             // Mostrar/ocultar rótulo textual ao lado do ícone
             const lbl = winnerBtn.querySelector('#tileCalcWinnerLabel');
             if (lbl) lbl.classList.toggle('hidden', !isWinner);
+          } // end winnerBtn
+
+          const notice = document.getElementById("tileCalcWinnerNotice");
+          if (notice) notice.classList.toggle("hidden", !isWinner);
+
+          const totalLabel = document.getElementById("tileCalcTotalLabel");
+          if (totalLabel) totalLabel.textContent = isWinner ? "Vencedor" : "Total";
+
+          const totalDesc = document.getElementById("tileCalcTotalDesc");
+          if (totalDesc)
+            totalDesc.textContent = isWinner
               ? "Pontuação automática"
               : "Lançado negativo";
 
