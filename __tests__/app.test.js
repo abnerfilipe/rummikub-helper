@@ -8,6 +8,8 @@ describe('Rummikub app basic smoke tests', () => {
   beforeAll(async () => {
     const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
     dom = new JSDOM(html, { runScripts: 'outside-only', resources: 'usable', url: 'http://localhost' });
+    // Prevent external stylesheet loading in jsdom (avoids encoding errors)
+    dom.window.document.querySelectorAll('link[rel="stylesheet"]').forEach(l => l.remove());
     // expose window/document globals so app.js can use bare globals (localStorage, document, etc.)
     global.window = dom.window;
     global.document = dom.window.document;

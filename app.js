@@ -633,6 +633,554 @@ const TileCalc = {
   },
 };
 
+// === RENDER ENGINE ===
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const Render = {
+  all() {
+    this.table();
+    this.totals();
+    this.updateAddPlayerState();
+    this.actionButton();
+    this.leaderboard();
+    this.playersManager();
+  },
+
+  playersManager() {
+    const wrap = document.getElementById("playersManager");
+    if (!wrap) return;
+
+  },
+  eventLog() {
+    const wrap = document.getElementById('eventLogList');
+    if (!wrap) return;
+    const events = Array.isArray(State.game.events) ? State.game.events : [];
+    if (events.length === 0) {
+      wrap.innerHTML = '<div class="text-sm text-slate-500">Nenhum evento registrado.</div>';
+      return;
+    }
+    wrap.innerHTML = events
+      .map(e => `<div class="p-2 rounded-lg bg-slate-50 border border-slate-100"><div class="text-[11px] text-slate-400">${new Date(e.ts).toLocaleString()}</div><div class="mt-1 text-sm text-slate-700">${escapeHtml(e.msg)}</div></div>`)
+      .join('');
+  },
+  pendingPenalties() {
+    const wrap = document.getElementById('pendingPenaltiesList');
+    if (!wrap) return;
+    const active = State.game.editingIdx !== null && typeof State.game.editingIdx === 'number' ? State.game.editingIdx : State.game.currIdx;
+    const history = State.game.turnHistory && State.game.turnHistory[active] ? State.game.turnHistory[active] : {};
+    const rows = [];
+    Object.keys(history).forEach(pid => {
+      const arr = history[pid] || [];
+      arr.forEach((entry, idx) => {
+        if (entry.penaltyApplied > 0 && entry.penaltyConfirmed === null) {
+          rows.push({ pid: parseInt(pid,10), idx, entry });
+        }
+      });
+    });
+    if (rows.length === 0) {
+      wrap.innerHTML = '<div class="text-sm text-slate-500">Nenhuma penalidade pendente nesta rodada.</div>';
+      return;
+    }
+    wrap.innerHTML = rows
+      .map(r => {
+        const pName = State.game.players[r.pid] || `Jogador ${r.pid + 1}`;
+        return `<div class="p-3 rounded-lg border border-slate-100 bg-slate-50"><div class="text-xs text-slate-400">${new Date(r.entry.start).toLocaleString()} — ${new Date(r.entry.end).toLocaleString()}</div><div class="mt-1 text-sm text-slate-800">${pName} — Penalidade aplicada: +${r.entry.penaltyApplied}</div><div class="mt-2 flex gap-2"><button onclick="Actions.confirmPendingPenalty(${active}, ${r.pid}, ${r.idx}, true)" class="px-3 py-2 rounded-lg bg-emerald-600 text-white">Confirmar</button><button onclick="Actions.confirmPendingPenalty(${active}, ${r.pid}, ${r.idx}, false)" class="px-3 py-2 rounded-lg bg-rose-600 text-white">Rejeitar</button></div></div>`;
+      })
+      .join('');
+  },
+  playerHistory(playerIdx) {
+    const wrap = document.getElementById('playerHistoryList');
+    if (!wrap) return;
+    const rows = [];
+    const th = State.game.turnHistory || {};
+    Object.keys(th).forEach(rk => {
+      const rIdx = parseInt(rk, 10);
+      const perPlayer = th[rIdx] && th[rIdx][playerIdx] ? th[rIdx][playerIdx] : [];
+      perPlayer.forEach(entry => {
+        rows.push({ rIdx, entry });
+      });
+    });
+
+    // Aggregate summary
+    const totalTurns = rows.length;
+    const totalTime = rows.reduce((acc, r) => acc + (r.entry.durationSeconds || 0), 0);
+    const avgTime = totalTurns > 0 ? Math.round(totalTime / totalTurns) : 0;
+    const totalPenaltyPieces = rows.reduce((acc, r) => acc + (r.entry.penaltyApplied || 0), 0);
+    const confirmedPenaltyPieces = rows.reduce((acc, r) => acc + ((r.entry.penaltyConfirmed === true && r.entry.penaltyApplied) ? r.entry.penaltyApplied : 0), 0);
+    const pendingPenaltyPieces = rows.reduce((acc, r) => acc + ((r.entry.penaltyConfirmed === null && r.entry.penaltyApplied) ? r.entry.penaltyApplied : 0), 0);
+
+    const fmt = (s) => {
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${m}m ${sec}s`;
+    };
+
+    if (rows.length === 0) {
+      wrap.innerHTML = '<div class="text-sm text-slate-500">Nenhum histórico disponível para este jogador.</div>';
+      return;
+    }
+
+    const summaryHtml = `<div class="p-3 rounded-lg border border-slate-100 bg-white mb-3">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <div class="text-sm text-slate-500">Total de turnos</div>
+            <div class="text-lg font-black text-slate-800">${totalTurns}</div>
+          </div>
+          <div>
+            <div class="text-sm text-slate-500">Tempo total</div>
+            <div class="text-lg font-black text-slate-800">${fmt(totalTime)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-slate-500">Tempo médio</div>
+            <div class="text-lg font-black text-slate-800">${fmt(avgTime)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-slate-500">Penalidades (peças)</div>
+            <div class="text-lg font-black text-rose-600">${totalPenaltyPieces}</div>
+          </div>
+          <div>
+            <div class="text-sm text-slate-500">Confirmadas / Pendentes</div>
+            <div class="text-lg font-black text-slate-700">${confirmedPenaltyPieces} / ${pendingPenaltyPieces}</div>
+          </div>
+        </div>
+      </div>`;
+
+    wrap.innerHTML = summaryHtml + rows
+      .sort((a,b) => (a.rIdx - b.rIdx))
+      .map(r => {
+        const e = r.entry;
+        const dateRange = `${new Date(e.start).toLocaleString()} — ${new Date(e.end).toLocaleString()}`;
+        const dur = `${e.durationSeconds}s`;
+        const pen = e.penaltyApplied > 0 ? `<span class="text-rose-600 font-bold">+${e.penaltyApplied}</span>` : '<span class="text-slate-400">—</span>';
+        const conf = e.penaltyApplied > 0 ? (e.penaltyConfirmed === null ? '<em class="text-slate-500">(pendente)</em>' : e.penaltyConfirmed ? '<span class="text-emerald-600 font-bold">(confirmada)</span>' : '<span class="text-rose-600 font-bold">(rejeitada)</span>') : '';
+        return `<div class="p-3 rounded-lg border border-slate-100 bg-slate-50"><div class="text-xs text-slate-400">Rodada ${r.rIdx + 1} — ${dateRange}</div><div class="mt-1 text-sm text-slate-800">Duração: ${dur} — Penalidade: ${pen} ${conf}</div></div>`;
+      })
+      .join('');
+  },
+
+  updateAddPlayerState() {
+    const section = document.getElementById("addPlayerSection");
+    const sectionPlayers = document.getElementById("addPlayerSectionPlayersWrap");
+    const statusPill = document.getElementById("gameStatusPill");
+
+    const inpMain = document.getElementById("newPlayerName");
+    const inpPlayers = document.getElementById("newPlayerNamePlayers");
+    const btnMain = document.getElementById("addPlayerBtn");
+    const btnPlayers = document.getElementById("addPlayerBtnPlayers");
+
+    const atMax =
+      Array.isArray(State.game.players) &&
+      State.game.players.length >= GameLimits.MAX_PLAYERS;
+
+    const started = State.isGameStarted();
+    const finished =
+      started && State.game && State.game.currIdx >= State.game.rounds.length;
+
+    if (started) {
+      if (section) section.classList.add("hidden");
+      if (sectionPlayers) sectionPlayers.classList.add("hidden");
+
+      if (inpMain) inpMain.disabled = true;
+      if (inpPlayers) inpPlayers.disabled = true;
+      if (btnMain) btnMain.disabled = true;
+      if (btnPlayers) btnPlayers.disabled = true;
+
+      if (statusPill) {
+        statusPill.classList.remove("hidden");
+
+        if (finished) {
+          statusPill.className =
+            "px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-black inline-flex items-center gap-1.5";
+          statusPill.title = "Jogo finalizado";
+          statusPill.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="hidden sm:inline">Jogo finalizado</span>
+            <span class="sm:hidden">Final</span>
+          `;
+        } else {
+          statusPill.className =
+            "px-2.5 py-1 rounded-full bg-orange-50 border border-orange-100 text-orange-700 text-xs font-black inline-flex items-center gap-1.5";
+          statusPill.title = "Partida em andamento";
+          statusPill.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v7.5a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z" />
+            </svg>
+            <span class="hidden sm:inline">Partida em andamento</span>
+            <span class="sm:hidden">Em jogo</span>
+          `;
+        }
+      }
+    } else {
+      if (section) section.classList.remove("hidden");
+      if (sectionPlayers) sectionPlayers.classList.remove("hidden");
+      if (statusPill) statusPill.classList.add("hidden");
+
+      if (inpMain) {
+        inpMain.disabled = atMax;
+        inpMain.placeholder = atMax
+          ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+          : "Nome do jogador...";
+        inpMain.classList.toggle("bg-slate-50", atMax);
+        inpMain.classList.toggle("opacity-70", atMax);
+      }
+      if (inpPlayers) {
+        inpPlayers.disabled = atMax;
+        inpPlayers.placeholder = atMax
+          ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+          : "Nome do jogador...";
+        inpPlayers.classList.toggle("bg-slate-50", atMax);
+        inpPlayers.classList.toggle("opacity-70", atMax);
+      }
+
+      if (btnMain) {
+        btnMain.disabled = atMax;
+        btnMain.classList.toggle("opacity-50", atMax);
+        btnMain.classList.toggle("cursor-not-allowed", atMax);
+        btnMain.title = atMax
+          ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+          : "Adicionar jogador";
+      }
+
+      if (btnPlayers) {
+        btnPlayers.disabled = atMax;
+        btnPlayers.classList.toggle("opacity-50", atMax);
+        btnPlayers.classList.toggle("cursor-not-allowed", atMax);
+        btnPlayers.title = atMax
+          ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+          : "Adicionar jogador";
+      }
+    }
+  },
+
+  table() {
+    const empty = document.getElementById("emptyState");
+    const cont = document.getElementById("tableContainer");
+    const lboard = document.getElementById("leaderboardBar");
+
+    if (State.game.players.length === 0) {
+      empty.classList.remove("hidden");
+      cont.classList.add("hidden");
+      lboard.classList.add("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    cont.classList.remove("hidden");
+    lboard.classList.remove("hidden");
+
+    let h =
+      '<th class="py-3 px-2 w-[50px] sticky left-0 z-20 bg-slate-50 border-r border-slate-200 text-center font-bold text-slate-400">Rodada</th>';
+
+          State.game.players.forEach((p) =>
+            (h += `<th class="py-3 px-2 min-w-[90px] text-center font-bold text-slate-700 truncate max-w-[110px]">${p}</th>`)
+          );
+          document.getElementById("headerRow").innerHTML = h;
+
+          let b = "";
+          State.game.rounds.forEach((rnd, rIdx) => {
+            const isEdit = State.game.editingIdx === rIdx;
+            const isCurr =
+              State.game.currIdx === rIdx && State.game.editingIdx === null;
+            const isPast = rIdx < State.game.currIdx;
+
+            let rClass = "border-b border-slate-100 ";
+            let sClass =
+              "sticky left-0 z-10 py-2 border-r border-slate-200 text-center ";
+            let ro = "readonly";
+
+            if (isEdit) {
+              rClass += "editing-round-row";
+              sClass += "bg-orange-50";
+              ro = "";
+            } else if (isCurr) {
+              rClass += "active-round-row";
+              sClass += "bg-white";
+              ro = State.isGameStarted() ? "" : "readonly";
+            } else if (isPast) {
+              rClass += "inactive-round-row";
+              sClass += "bg-slate-50";
+            } else {
+              rClass += "bg-white opacity-50";
+              sClass += "bg-white";
+            }
+
+            let icon = `<span class="block text-xs font-mono font-bold text-slate-300">${
+              rIdx + 1
+            }</span>`;
+            if (isEdit)
+              icon = `<span class="text-orange-600 font-bold text-xs">Edit</span>`;
+            else if (isCurr) {
+              if (State.game.editingIdx !== null) {
+                icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-slate-300 mx-auto"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>`;
+                ro = "readonly";
+                rClass = rClass.replace("active", "inactive");
+              } else
+                icon = `<span class="block text-xs font-mono font-bold text-orange-600">${
+                  rIdx + 1
+                }</span>`;
+            } else if (isPast && State.game.editingIdx === null) {
+              icon = `<button onclick="Actions.enableEdit(${rIdx})" class="mx-auto text-slate-300 hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg></button>`;
+            }
+
+            b += `<tr class="${rClass}"><td class="${sClass}">${icon}</td>`;
+            rnd.forEach((v, pIdx) => {
+              const isWinnerCell =
+                State.game.roundWinners &&
+                typeof State.game.roundWinners[rIdx] === "number" &&
+                State.game.roundWinners[rIdx] === pIdx;
+              const n = parseInt(v);
+              let c = "text-slate-800";
+              if (!isNaN(n))
+                c =
+                  n > 0
+                    ? "text-emerald-600"
+                    : n < 0
+                    ? "text-rose-600"
+                    : isWinnerCell
+                    ? "text-emerald-600"
+                    : "text-slate-400";
+              const ring =
+                isEdit || (isCurr && State.isGameStarted())
+                  ? "focus:ring-2 focus:ring-inset focus:ring-orange-500 bg-orange-50/10"
+                  : "focus:ring-0";
+              const winnerIcon = isWinnerCell
+                ? `<div class="absolute top-1 left-1 w-6 h-6 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-center text-yellow-800 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                      <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" />
+                      <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" />
+                    </svg>
+                  </div>`
+                : "";
+              b += `<td class="p-0 border-r border-slate-100 last:border-0 relative h-[52px]">${winnerIcon}<input id="cell-${rIdx}-${pIdx}" type="tel" inputmode="decimal" class="w-full h-full text-center text-lg font-bold bg-transparent outline-none transition-all ${c} ${ring} placeholder-slate-200" value="${v}" placeholder="-" ${ro} onfocus="this.select()" onclick="Actions.openTileCalc(${rIdx}, ${pIdx})" oninput="Actions.handleInput(${rIdx}, ${pIdx}, this)"></td>`;
+            });
+            b += "</tr>";
+          });
+          document.getElementById("tableBody").innerHTML = b;
+
+          let f =
+            '<td class="py-4 px-2 sticky left-0 z-20 bg-slate-900 border-r border-slate-700 text-center font-bold text-xs uppercase text-slate-300">Total</td>';
+          State.game.players.forEach(
+            (_, i) =>
+              (f += `<td id="total-${i}" class="text-center font-black text-lg py-3 text-slate-400">0</td>`)
+          );
+          document.getElementById("totalRow").innerHTML = f;
+        },
+
+        totals() {
+          let sums = new Array(State.game.players.length).fill(0);
+          State.game.rounds.forEach((r) =>
+            r.forEach((v, i) => {
+              const n = parseInt(v);
+              if (!isNaN(n)) sums[i] += n;
+            })
+          );
+          sums.forEach((s, i) => {
+            const el = document.getElementById(`total-${i}`);
+            if (el) {
+              el.innerText = s > 0 ? `+${s}` : s;
+              el.className = `text-center font-black text-lg py-3 ${
+                s > 0
+                  ? "text-emerald-400"
+                  : s < 0
+                  ? "text-rose-400"
+                  : "text-slate-500"
+              }`;
+            }
+          });
+          return sums;
+        },
+
+        leaderboard() {
+          const sums = this.totals();
+          const list = sums
+            .map((s, i) => ({ n: State.game.players[i], s, i }))
+            .sort((a, b) => b.s - a.s);
+          const el = document.getElementById("leaderboardList");
+          const toggleBtn = document.getElementById("leaderboardToggleBtn");
+          const body = document.getElementById("leaderboardBody");
+          const chevron = document.getElementById("leaderboardChevron");
+          if (!el) return;
+
+          let h = "";
+
+          const activeRoundIdx =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === "number"
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const winnerIdx =
+            State.game.roundWinners &&
+            typeof State.game.roundWinners[activeRoundIdx] === "number"
+              ? State.game.roundWinners[activeRoundIdx]
+              : null;
+
+          const hasMoreThanPodium = list.length > 3;
+          const expanded = UI.leaderboardExpanded === true;
+          const open = UI.leaderboardOpen === true;
+
+          if (body) body.classList.toggle("hidden", !open);
+          if (chevron) {
+            chevron.innerHTML = open
+              ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                   <path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" />
+                 </svg>`
+              : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                   <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                 </svg>`;
+          }
+
+          if (!open) {
+            el.innerHTML = "";
+            if (toggleBtn) toggleBtn.classList.add("hidden");
+            return;
+          }
+
+          const showAll = expanded || !hasMoreThanPodium;
+          const visible = showAll ? list : list.slice(0, 3);
+
+          if (toggleBtn) {
+            if (hasMoreThanPodium) {
+              toggleBtn.classList.remove("hidden");
+              toggleBtn.title = showAll ? "Mostrar menos" : "Ver todos";
+              toggleBtn.innerHTML = showAll
+                ? `<span class="sr-only">Mostrar menos</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                   </svg>`
+                : `<span class="sr-only">Ver todos</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M3 5.75A.75.75 0 013.75 5h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zM3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10zm0 4.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+                   </svg>`;
+            } else {
+              toggleBtn.classList.add("hidden");
+              UI.leaderboardExpanded = false;
+            }
+          }
+
+          if (showAll) {
+            el.className = "flex flex-col gap-1 max-h-44 overflow-y-auto pr-1 -mr-1";
+          } else {
+            el.className = "flex gap-2 overflow-x-auto hide-scrollbar py-0.5";
+          }
+
+          const trophySvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+          visible.forEach((p, rank) => {
+            const isLead = rank === 0;
+            const isSecond = rank === 1;
+            const isThird = rank === 2;
+
+            const badgeBg = isLead
+              ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+              : isSecond
+              ? "bg-slate-100 border-slate-200 text-slate-700"
+              : isThird
+              ? "bg-orange-100 border-orange-200 text-orange-800"
+              : "bg-slate-100 border-slate-200 text-slate-600";
+
+            const isActiveRoundWinner =
+              typeof winnerIdx === "number" && winnerIdx === p.i;
+
+            const col =
+              p.s > 0
+                ? "text-emerald-600"
+                : p.s < 0
+                ? "text-rose-600"
+                : isActiveRoundWinner
+                ? "text-emerald-600"
+                : "text-slate-400";
+
+            const sign =
+              p.s > 0 || (p.s === 0 && isActiveRoundWinner) ? "+" : "";
+
+            const badgeContent = isLead
+              ? trophySvg
+              : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+            if (showAll) {
+              h += `
+                <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                        ${badgeContent}
+                      </div>
+                      <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                    </div>
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  </div>
+                </div>
+              `;
+            } else {
+              h += `
+                <div class="shrink-0 rounded-lg border border-yellow-100 bg-white/70 px-2 py-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center">
+                      ${badgeContent}
+                    </div>
+                    <div class="text-xs font-black text-slate-800 max-w-[120px] truncate">${p.n}</div>
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  </div>
+                </div>
+              `;
+            }
+          });
+
+          el.innerHTML = h;
+        },
+
+        actionButton() {
+          const btn = document.getElementById("smartActionBtn");
+          if (State.game.players.length === 0) {
+            btn.classList.add("hidden");
+            return;
+          }
+
+          btn.classList.remove("hidden");
+
+          if (State.game.editingIdx !== null) {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.classList.replace("bg-orange-600", "bg-slate-900");
+            btn.disabled = false;
+            btn.innerHTML = `<div class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-orange-400"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L16.862 4.487" /></svg></div><span class="text-lg">Salvar Alterações</span>`;
+            return;
+          }
+
+          if (!State.isGameStarted()) {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.classList.replace("bg-slate-900", "bg-orange-600");
+            btn.disabled = State.game.players.length < GameLimits.MIN_PLAYERS;
+            btn.innerHTML =
+              '<span class="text-lg">Iniciar Rodada</span>';
+            return;
+          }
+
+          if (State.game.currIdx >= State.game.rounds.length) {
+            btn.classList.replace("bg-slate-900", "bg-emerald-600");
+            btn.classList.replace("bg-orange-600", "bg-emerald-600");
+            btn.innerHTML = "<span>Jogo Finalizado</span>";
+            // Mantém clicável para abrir o resumo final.
+            btn.disabled = false;
+          } else {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.disabled = false;
+            btn.innerHTML = `<div class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-orange-400"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><span class="text-lg">Concluir Rodada</span>`;
+          }
+        },
+      };
+
+if (typeof window !== "undefined") window.Render = Render;
+
 const Actions = {
   movePlayerUp(pIdx) {
     this.movePlayer(pIdx, -1);
