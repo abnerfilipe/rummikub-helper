@@ -1,5 +1,5 @@
 // Entry module for Vite
-import '../app.js';
+import './app.js';
 
 // HMR stub: if module changes, re-run or log
 if (import.meta.hot) {

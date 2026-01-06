@@ -2088,6 +2088,18 @@ if (typeof window !== 'undefined') {
   } catch (e) {}
 }
 
+// Expor objetos no escopo global para compatibilidade com onclick handlers
+if (typeof window !== 'undefined') {
+  window.State = State;
+  window.Timer = Timer;
+  window.Actions = Actions;
+  window.TileCalc = TileCalc;
+  window.Render = Render;
+  window.UI = UI;
+  window.Sound = Sound;
+  window.GameLimits = GameLimits;
+}
+
 // Inicialização
 State.init();
 Timer.updateUI();
