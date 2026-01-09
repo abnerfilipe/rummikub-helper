@@ -391,7 +391,7 @@ const TileCalc = {
         ? "Pontuação automática"
         : "Lançado negativo";
 
-    const grid = document.getElementById("tileCalcGrid");
+    const grid = document.getElementById("tileGrid");
     if (grid) {
       grid.parentElement.classList.toggle("hidden", isWinner);
     }
@@ -529,44 +529,63 @@ const TileCalc = {
   },
 
   render() {
-    const grid = document.getElementById("tileCalcGrid");
+    const grid = document.getElementById("tileGrid");
     if (!grid) return;
-    const jokerSvg = `...`;
-
     let html = "";
     for (let i = 0; i < 14; i++) {
       const isJoker = i === 13;
-      const label = isJoker
+
+      const labelHtml = isJoker
         ? `<div class="flex items-center gap-2 min-w-0">
             <div id="tileLabel-${i}" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center transition-colors">
-              ${jokerSvg}
+              <span class="text-sm font-black">J</span>
             </div>
             <span class="font-black text-slate-800 text-sm truncate">Curinga</span>
           </div>`
         : `<div id="tileLabel-${i}" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black transition-colors">${i + 1}</div>`;
-      const sub = isJoker
+
+      const subHtml = isJoker
         ? `<div class="text-[11px] font-bold text-slate-500">30 pts</div>`
         : `<div class="text-[11px] font-bold text-slate-500">${i + 1} pt${i + 1 === 1 ? "" : "s"}</div>`;
 
-      html += `...`;
+      html += `
+        <div id="tileCard-${i}" class="rounded-2xl border border-slate-200 bg-white p-2 transition-colors">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              ${labelHtml}
+              <div class="mt-0.5">${subHtml}</div>
+            </div>
+            <div id="tileBadge-${i}" class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-black shrink-0 transition-colors bg-slate-100 text-slate-700">
+              <span class="text-slate-500">x</span>
+              <span id="tileCount-${i}" class="tabular-nums">0</span>
+            </div>
+          </div>
+
+          <div class="mt-2 flex items-center gap-2">
+            <button
+              id="tileDec-${i}"
+              onclick="TileCalc.dec(${i})"
+              class="flex-1 h-9 rounded-xl font-black active:scale-95 transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200"
+              aria-label="Diminuir"
+              title="Diminuir"
+            >
+              −
+            </button>
+            <button
+              id="tileInc-${i}"
+              onclick="TileCalc.inc(${i})"
+              class="flex-1 h-9 rounded-xl font-black active:scale-95 transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200"
+              aria-label="Aumentar"
+              title="Aumentar"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      `;
     }
 
     grid.innerHTML = html;
-
-    try {
-      const walker = document.createTreeWalker(grid, NodeFilter.SHOW_TEXT, null, false);
-      const toRemove = [];
-      while (walker.nextNode()) {
-        const t = walker.currentNode;
-        if (t && typeof t.textContent === 'string' && /id="/.test(t.textContent)) {
-          toRemove.push(t);
-        }
-      }
-      toRemove.forEach(n => n.parentNode && n.parentNode.removeChild(n));
-      if (toRemove.length) console.warn('Removed', toRemove.length, 'stray text nodes from tileCalcGrid');
-    } catch (e) {
-      console.warn('Error cleaning tileCalcGrid text nodes', e);
-    }
   },
 
   apply() {

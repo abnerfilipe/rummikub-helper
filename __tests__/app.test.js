@@ -28,7 +28,7 @@ describe('Rummikub app basic smoke tests', () => {
     };
     global.Render = dom.window.Render;
 
-    const script = fs.readFileSync(path.resolve(__dirname, '../app.js'), 'utf8');
+    const script = fs.readFileSync(path.resolve(__dirname, '../src/app.js'), 'utf8');
 
     // Ensure bare globals like localStorage and document resolve inside the window's eval scope
     const bootScript = 'var localStorage = window.localStorage; var document = window.document; var navigator = window.navigator;';
