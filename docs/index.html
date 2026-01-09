@@ -8,8 +8,135 @@
     />
     <title>Rummikub Helper</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" crossorigin src="./assets/index-D4nD0PWO.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-JXEE135t.css">
+    <style>
+      body {
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none;
+        user-select: none;
+      }
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      @keyframes pulse-urgent {
+        0%,
+        100% {
+          background-color: #fee2e2;
+          border-color: #ef4444;
+        }
+        50% {
+          background-color: #fca5a5;
+          border-color: #b91c1c;
+        }
+      }
+      .timer-critical {
+        animation: pulse-urgent 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        height: 4px;
+      }
+      .hide-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      .active-round-row {
+        background-color: #ffffff;
+        box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #ea580c;
+        z-index: 10;
+        position: relative;
+      }
+      .inactive-round-row {
+        background-color: #f1f5f9;
+        border-left: 4px solid transparent;
+        opacity: 0.7;
+        filter: grayscale(0.5);
+      }
+      .nav-link.active {
+        color: #ea580c;
+        border-bottom: 2px solid #ea580c;
+        font-weight: 700;
+      }
+      .nav-link {
+        color: #64748b;
+        font-weight: 500;
+        padding-bottom: 12px;
+        transition: all 0.2s;
+      }
+      @keyframes modalPop {
+        0% {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-content {
+        animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      /* Winner modal badge styles */
+      #modalWinnerBadge {
+        font-size: 0.95rem;
+        padding: 0.25rem 0.6rem;
+        box-shadow: 0 8px 20px rgba(2,6,23,0.12);
+        transition: transform 200ms ease, background-color 200ms ease;
+        display: inline-block;
+        line-height: 1;
+      }
+
+      @keyframes badgePulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+      }
+
+      .badge-pulse {
+        animation: badgePulse 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      /* Trophy icon styles */
+      .trophy-icon {
+        display: inline-block;
+        color: inherit;
+        transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+        filter: drop-shadow(0 6px 18px rgba(2,6,23,0.08));
+      }
+      .trophy-icon:hover {
+        transform: translateY(-2px) scale(1.06);
+        filter: drop-shadow(0 10px 24px rgba(2,6,23,0.12));
+      }
+      .trophy-icon--small { width: 1rem; height: 1rem; }
+      .trophy-icon--med { width: 1.25rem; height: 1.25rem; }
+      .trophy-icon--lg { width: 1.5rem; height: 1.5rem; }
+
+      /* Focus style for confirm button (accessibility) */
+      #confirmWinnerBtn:focus {
+        outline: 3px solid rgba(234,88,12,0.18);
+        outline-offset: 3px;
+        border-radius: 10px;
+      }
+      .editing-round-row {
+        background-color: #fff7ed;
+        box-shadow: 0 4px 15px -3px rgba(234, 88, 12, 0.2);
+        border-left: 4px solid #f97316;
+        z-index: 20;
+        position: relative;
+      }
+
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      details > summary {
+        list-style: none;
+      }
+    </style>
   </head>
   <body class="bg-slate-100 text-slate-800 font-sans h-screen flex flex-col">
     <!-- 1. HEADER & ABAS -->
@@ -269,43 +396,6 @@
               />
             </svg>
           </button>
-
-          <button
-            id="btnSkipTurn"
-            title="Pular turno"
-            onclick="Actions.confirmSkipTurn()"
-            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"
-          >
-            <!-- Melhor ícone 'skip': barra + dois triângulos -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 5v14" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 5l8 7-8 7V5z" />
-            </svg>
-          </button>
-
-          <button
-            id="btnShowEvents"
-            title="Exibir log de eventos"
-            onclick="Actions.openEventLog()"
-            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 12h8M8 17h5" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18v16H3z" />
-            </svg>
-          </button>
-
-          <button
-            id="btnPendingPenalties"
-            title="Penalidades pendentes"
-            onclick="Actions.openPendingPenalties()"
-            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button> 
           <button
             id="btnToggleTimer"
             onclick="Actions.toggleTimer()"
@@ -532,39 +622,58 @@
 
         <!-- === ABA JOGADORES === -->
         <div id="tab-players" class="hidden">
-          <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h2 class="text-lg font-black text-slate-800 mb-4">Gerenciar Jogadores</h2>
-
-            <!-- Lista de Jogadores -->
-            <div id="playersList" class="space-y-3 mb-6">
-              <!-- Os jogadores serão renderizados aqui por Render.playersManager() -->
-            </div>
-
-            <!-- Adicionar Novo Jogador -->
-            <div id="addPlayerSection">
-              <label for="playerName" class="text-sm font-bold text-slate-600 mb-2 block">Novo Jogador</label>
-              <div class="flex gap-2">
-                <input
-                  type="text"
-                  id="playerName"
-                  onkeydown="Actions.handleEnterFrom(event, 'playerName')"
-                  class="flex-1 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 outline-none transition"
-                  placeholder="Nome do Jogador"
-                />
-                <button
-                  onclick="Actions.addPlayerFrom('playerName')"
-                  id="addPlayerBtn"
-                  class="px-6 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 active:scale-95 transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
-                  title="Adicionar Jogador"
-                >
-                  Adicionar
-                </button>
-              </div>
-              <p id="playerManagerError" class="text-red-500 text-xs mt-2 h-4"></p>
-              <p class="text-xs text-slate-500 mt-1">
-                Mínimo de 2 e máximo de 6 jogadores.
+          <div
+            class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+          >
+            <div class="p-4 border-b border-slate-100">
+              <h2 class="text-lg font-black text-slate-800">Jogadores</h2>
+              <p class="text-sm text-slate-500 mt-1">
+                Renomeie a qualquer momento. Remover só antes de iniciar a 1ª
+                rodada.
               </p>
             </div>
+
+            <!-- Adicionar Jogador (aba Jogadores) -->
+            <div id="addPlayerSectionPlayersWrap" class="p-4 border-b border-slate-100">
+              <div id="addPlayerSectionPlayers" class="flex gap-2">
+                <div class="relative flex-1">
+                  <div
+                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="w-5 h-5 text-slate-400"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    id="newPlayerNamePlayers"
+                    class="block w-full pl-10 p-3.5 bg-white border border-slate-200 rounded-xl text-base font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 outline-none shadow-sm"
+                    placeholder="Nome do jogador..."
+                    onkeypress="Actions.handleEnterFrom(event, 'newPlayerNamePlayers')"
+                  />
+                </div>
+                <button
+                  onclick="Actions.addPlayerFrom('newPlayerNamePlayers')"
+                  class="bg-slate-800 text-white px-5 rounded-xl font-bold shadow-md hover:bg-slate-700 active:scale-95 transition-all text-xl"
+                >
+                  +
+                </button>
+              </div>
+
+            </div>
+
+            <div id="playersManager" class="p-4 space-y-3"></div>
           </div>
         </div>
 
@@ -591,7 +700,7 @@
                     <div class="text-sm font-black text-slate-800">Regras de Tempo no Rummikub</div>
                     <div class="text-xs text-slate-500 mt-1">Diretrizes de tempo por turno e penalidades</div>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-slate-300 ml-auto" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-slate-300 ml-auto" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
                 </summary>
 
                 <div class="px-4 pb-4 text-sm text-slate-600 space-y-2">
@@ -1095,70 +1204,6 @@
     </div>
 
     <!-- 2. ERROR MODAL -->
-
-    <!-- 3. EVENT LOG MODAL -->
-    <div
-      id="eventLogModal"
-      class="hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-    >
-      <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 modal-content">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-black text-slate-800">Registro de Eventos</h3>
-          <div class="flex gap-2">
-            <button onclick="Actions.clearEventLog()" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700">Limpar</button>
-            <button onclick="Actions.closeEventLog()" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Fechar</button>
-          </div>
-        </div>
-        <div id="eventLogList" class="max-h-[50vh] overflow-auto space-y-2 text-sm text-slate-700"></div>
-      </div>
-    </div>
-
-    <!-- PENALTY ADJUST MODAL -->
-    <div id="penaltyAdjustModal" class="hidden fixed inset-0 z-[92] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 modal-content">
-        <h3 class="text-lg font-black text-slate-800 mb-2">Ajustar penalidade</h3>
-        <div class="text-sm text-slate-600 mb-3">Jogador: <span id="penaltyAdjustName" class="font-bold"></span></div>
-        <div class="flex items-center gap-2 mb-4">
-          <button type="button" onclick="(function(){const el=document.getElementById('penaltyAdjustAmount'); el.value = (parseInt(el.value||'0',10)||0)-1})()" class="px-3 py-2 rounded-lg bg-slate-50">-</button>
-          <input id="penaltyAdjustAmount" type="number" class="w-full border border-slate-200 rounded-xl p-3 text-center" value="1" />
-          <button type="button" onclick="(function(){const el=document.getElementById('penaltyAdjustAmount'); el.value = (parseInt(el.value||'0',10)||0)+1})()" class="px-3 py-2 rounded-lg bg-slate-50">+</button>
-        </div>
-        <div class="text-xs text-slate-500 mb-4">Use valores negativos para reduzir penalidades (-1 reduz uma peça).</div>
-        <div class="flex gap-3">
-          <button onclick="Actions.closePenaltyAdjust()" class="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
-          <button onclick="Actions.applyPenaltyAdjust()" class="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl">Aplicar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- PENDING PENALTIES CONFIRMATION MODAL -->
-    <div id="pendingPenaltiesModal" class="hidden fixed inset-0 z-[93] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 modal-content">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-black text-slate-800">Penalidades pendentes</h3>
-          <div>
-            <button onclick="Actions.closePendingPenalties()" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Fechar</button>
-          </div>
-        </div>
-        <div id="pendingPenaltiesList" class="max-h-[60vh] overflow-auto space-y-3 text-sm text-slate-700"></div>
-      </div>
-    </div>
-
-    <!-- PLAYER HISTORY MODAL -->
-    <div id="playerHistoryModal" class="hidden fixed inset-0 z-[94] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 modal-content">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-black text-slate-800">Histórico do jogador</h3>
-          <div class="flex gap-2">
-            <button onclick="Actions.exportPlayerHistoryCSV()" class="px-3 py-2 rounded-xl bg-slate-100">Exportar CSV</button>
-            <button onclick="Actions.clearPlayerHistory()" class="px-3 py-2 rounded-xl bg-rose-100 text-rose-700">Limpar histórico</button>
-            <button onclick="Actions.clearPlayerHistoryAndPenalties()" class="px-3 py-2 rounded-xl bg-rose-700 text-white">Limpar histórico + penalidades</button>
-            <button onclick="Actions.closePlayerHistory()" class="px-3 py-2 rounded-xl bg-slate-900 text-white">Fechar</button>
-          </div>
-        </div>
-        <div id="playerHistoryList" class="max-h-[60vh] overflow-auto space-y-3 text-sm text-slate-700"></div>
-      </div>
-    </div> 
     <div
       id="errorModal"
       class="hidden fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -1247,7 +1292,7 @@
                   d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z"
                 />
                 <path
-                  d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0  01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"
+                  d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z"
                 />
               </svg>
               <span id="tileCalcWinnerLabel" class="ml-2 hidden sm:inline text-sm font-black text-yellow-800">Vencedor</span>
@@ -1275,9 +1320,7 @@
         </div>
 
         <div class="mt-3 flex-1 min-h-0 overflow-y-auto pr-1 -mr-1">
-          <div id="tileGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <!-- O conteúdo será gerado por TileCalc.render() -->
-          </div>
+          <div id="tileCalcGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
         </div>
 
         <div
@@ -1480,20 +1523,11 @@
           </div>
         </div>
 
-        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-4">
+        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-6">
           <span class="text-sm font-bold text-slate-700">Rotação automática</span>
           <input
             type="checkbox"
             id="autoRotateToggle"
-            class="w-6 h-6 accent-orange-600 rounded"
-          />
-        </div>
-
-        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-6">
-          <span class="text-sm font-bold text-slate-700">Confirmar ao expirar</span>
-          <input
-            type="checkbox"
-            id="confirmOnExpiry"
             class="w-6 h-6 accent-orange-600 rounded"
           />
         </div>
@@ -1618,8 +1652,2140 @@
     </div>
 
     <!-- JAVASCRIPT -->
+    <script>
+      const GameLimits = {
+        MIN_PLAYERS: 2,
+        MAX_PLAYERS: 6,
+      };
 
-    <!-- All inline JS moved to app.js (now imported by /src/main.js). -->
+      // === STATE MANAGEMENT ===
+      const State = {
+        game: {
+          players: [],
+          rounds: [],
+          currIdx: 0,
+          editingIdx: null,
+          locked: false,
+          started: false,
+          tileDetails: {},
+          roundWinners: {},
+        },
+        timer: { d: 120, c: 120, r: false, i: null, s: true },
 
+        init() {
+          const sGame = localStorage.getItem("rummi_v7_game");
+          if (sGame) this.game = JSON.parse(sGame);
+          // Ensure valid state
+          if (typeof this.game.currIdx === "undefined") this.game.currIdx = 0;
+          if (typeof this.game.editingIdx === "undefined")
+            this.game.editingIdx = null;
+          if (typeof this.game.locked === "undefined") this.game.locked = false;
+          if (
+            typeof this.game.tileDetails === "undefined" ||
+            this.game.tileDetails === null ||
+            typeof this.game.tileDetails !== "object" ||
+            Array.isArray(this.game.tileDetails)
+          ) {
+            this.game.tileDetails = {};
+          }
+          if (
+            typeof this.game.roundWinners === "undefined" ||
+            this.game.roundWinners === null ||
+            typeof this.game.roundWinners !== "object" ||
+            Array.isArray(this.game.roundWinners)
+          ) {
+            this.game.roundWinners = {};
+          }
+          if (typeof this.game.started === "undefined") {
+            const inferredStarted =
+              this.game.locked === true ||
+              (Array.isArray(this.game.rounds) &&
+                this.game.rounds.length > 0 &&
+                (this.game.currIdx > 0 ||
+                  this.game.rounds[0].some(
+                    (val) => val !== "" && val !== null
+                  )));
+            this.game.started = inferredStarted;
+            if (inferredStarted) this.game.locked = true;
+          }
+
+          const sTimer = localStorage.getItem("rummi_v7_timer");
+          if (sTimer) {
+            const p = JSON.parse(sTimer);
+            const rawSeconds = typeof p.d === "number" ? p.d : 120;
+            const minutes = Math.round(rawSeconds / 60);
+            const clampedMinutes = Math.min(59, Math.max(2, minutes || 2));
+            this.timer.d = clampedMinutes * 60;
+            this.timer.s = p.s !== false;
+            this.timer.c = this.timer.d;
+          } else {
+            this.timer.d = 120;
+            this.timer.c = 120;
+          }
+
+          // Defaults relacionados à rotação e regras de tempo
+          if (typeof this.game.turnIdx === 'undefined') this.game.turnIdx = 0;
+          if (typeof this.game.timeRule === 'undefined') {
+            const minutes = Math.round(this.timer.d / 60);
+            this.game.timeRule = minutes === 1 ? 'official' : minutes === 2 ? 'alternative' : 'custom';
+          }
+          if (typeof this.game.turnAutoRotate === 'undefined') this.game.turnAutoRotate = true;
+          if (typeof this.game.penalties === 'undefined' || this.game.penalties === null || typeof this.game.penalties !== 'object') this.game.penalties = {};
+        },
+        save() {
+          localStorage.setItem("rummi_v7_game", JSON.stringify(this.game));
+        },
+        saveTimer() {
+          localStorage.setItem(
+            "rummi_v7_timer",
+            JSON.stringify({ d: this.timer.d, s: this.timer.s })
+          );
+        },
+
+        isGameStarted() {
+          return this.game.started === true;
+        },
+
+        startGame() {
+          if (this.game.started === true) return;
+          this.game.started = true;
+          this.game.locked = true;
+          this.save();
+        },
+      };
+
+      // === UI STATE (não persistido) ===
+      const UI = {
+        editingPlayerIdx: null,
+        leaderboardExpanded: false,
+        leaderboardOpen: false,
+      };
+
+      // === SOUND ENGINE ===
+      const Sound = {
+        ctx: null,
+        init() {
+          if (!this.ctx)
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (this.ctx.state === "suspended") this.ctx.resume();
+        },
+        play(f, t, d) {
+          this.init();
+          const o = this.ctx.createOscillator(),
+            g = this.ctx.createGain();
+          o.type = t;
+          o.frequency.value = f;
+          g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + d);
+          o.connect(g);
+          g.connect(this.ctx.destination);
+          o.start();
+          o.stop(this.ctx.currentTime + d);
+        },
+        tick: () => Sound.play(800, "sine", 0.1),
+        alarm: () => {
+          Sound.init();
+          [0, 0.2, 0.4].forEach((t) =>
+            setTimeout(() => Sound.play(880, "square", 0.1), t * 1000)
+          );
+        },
+      };
+
+      // === TIMER LOGIC ===
+      // helper: formato curto para nomes no temporizador
+      function formatPlayerShort(n, max = 12) {
+        if (!n) return "";
+        return n.length > max ? n.substring(0, max - 1) + "…" : n;
+      }
+
+      const Timer = {
+        updateUI() {
+          const m = Math.floor(State.timer.c / 60)
+              .toString()
+              .padStart(2, "0"),
+            s = (State.timer.c % 60).toString().padStart(2, "0");
+          const display = document.getElementById("timerDisplay");
+          if (display) display.innerText = `${m}:${s}`;
+
+          // Atualiza nome do jogador atual no cabeçalho do timer
+          const curIdx = typeof State.game.turnIdx === "number" ? State.game.turnIdx : 0;
+          const curNameFull = State.game.players[curIdx] || "";
+          const curEl = document.getElementById("currentPlayerName");
+          if (curEl) {
+            curEl.innerText = formatPlayerShort(curNameFull, 12);
+            curEl.title = curNameFull;
+          }
+
+          const pct = State.timer.d > 0 ? (State.timer.c / State.timer.d) * 100 : 100;
+          const progEl = document.getElementById("timerProgress");
+          if (progEl) progEl.style.width = `${pct}%`;
+
+          const c = document.getElementById("timerContainer"),
+            b = document.getElementById("timerProgress");
+          if (State.timer.r && State.timer.c <= 15) {
+            c.classList.add("timer-critical");
+            b.classList.replace("bg-orange-500", "bg-red-600");
+          } else {
+            c.classList.remove("timer-critical");
+            b.classList.replace("bg-red-600", "bg-orange-500");
+          }
+        },
+        start() {
+          const p = document.getElementById("iconPlay"),
+            z = document.getElementById("iconPause"),
+            b = document.getElementById("btnToggleTimer");
+          Sound.init();
+          if (State.timer.d === 0) return; // Sem limite
+          if (State.timer.c <= 0) State.timer.c = State.timer.d;
+          State.timer.r = true;
+          p.classList.add("hidden");
+          z.classList.remove("hidden");
+          b.classList.replace("bg-orange-600", "bg-slate-800");
+          State.timer.i = setInterval(() => {
+            State.timer.c--;
+            Timer.updateUI();
+            if (State.timer.s && State.timer.c <= 10 && State.timer.c > 0)
+              State.timer.c % 2 === 0 ? Sound.tick() : null;
+            if (State.timer.c <= 0) {
+              Timer.reset();
+              if (State.timer.s) Sound.alarm();
+              Timer.handleExpiry();
+            }
+          }, 1000);
+        },
+        stop() {
+          const p = document.getElementById("iconPlay"),
+            z = document.getElementById("iconPause"),
+            b = document.getElementById("btnToggleTimer");
+          State.timer.r = false;
+          clearInterval(State.timer.i);
+          p.classList.remove("hidden");
+          z.classList.add("hidden");
+          b.classList.replace("bg-slate-800", "bg-orange-600");
+          document
+            .getElementById("timerContainer")
+            .classList.remove("timer-critical");
+        },
+        toggle() {
+          if (State.timer.r) Timer.stop();
+          else Timer.start();
+        },
+        handleExpiry() {
+          // Quem estava no turno?
+          const pIdx = typeof State.game.turnIdx === 'number' ? State.game.turnIdx : 0;
+          const name = State.game.players[pIdx] || `Jogador ${pIdx + 1}`;
+          const rule = State.game.timeRule || 'official';
+
+          let draws = 1;
+          if (rule === 'official') draws = 3;
+          else if (rule === 'alternative') draws = 1;
+          else if (rule === 'impatient') draws = 1;
+
+          const msg = `${name} estourou o tempo (${rule === 'official' ? 'Oficial' : rule === 'alternative' ? 'Alternativa' : rule === 'impatient' ? 'Variação' : 'Personalizado'}). Penalidade: comprar ${draws} peça(s). Devolver peças jogadas à posição original.`;
+
+          showConfirm('Tempo Expirado', msg, () => {
+            // registrar penalidade
+            if (!State.game.penalties) State.game.penalties = {};
+            State.game.penalties[pIdx] = (State.game.penalties[pIdx] || 0) + draws;
+            // rotacionar para o próximo jogador
+            Actions.rotateToNextPlayer();
+            State.save();
+            Render.playersManager();
+            // iniciar automaticamente o próximo turno se configurado
+            if (State.game.turnAutoRotate) {
+              State.timer.c = State.timer.d;
+              Timer.start();
+            }
+          });
+        },
+        reset() {
+          State.timer.r = false;
+          clearInterval(State.timer.i);
+          State.timer.c = State.timer.d;
+          Timer.updateUI();
+          document.getElementById("iconPlay").classList.remove("hidden");
+          document.getElementById("iconPause").classList.add("hidden");
+          document
+            .getElementById("btnToggleTimer")
+            .classList.replace("bg-slate-800", "bg-orange-600");
+          document
+            .getElementById("timerContainer")
+            .classList.remove("timer-critical");
+        },
+      };
+
+      // === ACTIONS & UTILS ===
+      const TileCalc = {
+        target: null,
+        pendingWinner: null,
+        roundWinnerAtOpen: null,
+        counts: new Array(14).fill(0),
+        values: (() => {
+          const arr = [];
+          for (let i = 1; i <= 13; i++) arr.push(i);
+          arr.push(30); // curinga
+          return arr;
+        })(),
+
+        open(rIdx, pIdx) {
+          this.target = { rIdx, pIdx };
+
+          const w = State.game.roundWinners ? State.game.roundWinners[rIdx] : null;
+          this.roundWinnerAtOpen = typeof w === "number" ? w : null;
+          this.pendingWinner = this.roundWinnerAtOpen === pIdx;
+
+          const key = `${rIdx}-${pIdx}`;
+          const saved = State.game.tileDetails ? State.game.tileDetails[key] : null;
+          if (Array.isArray(saved) && saved.length === 14) {
+            this.counts = saved.map((n) => (typeof n === "number" ? n : 0));
+          } else {
+            this.counts = new Array(14).fill(0);
+          }
+          this.render();
+          for (let i = 0; i < 14; i++) this.updateTileCount(i);
+          this.updateTotal();
+          this.updateHeader();
+          document.getElementById("tileCalcModal").classList.remove("hidden");
+          if (document.activeElement && document.activeElement.blur)
+            document.activeElement.blur();
+        },
+
+        close() {
+          document.getElementById("tileCalcModal").classList.add("hidden");
+          this.target = null;
+          this.pendingWinner = null;
+          this.roundWinnerAtOpen = null;
+        },
+
+        isWinnerTarget() {
+          if (!this.target) return false;
+          if (typeof this.pendingWinner === "boolean") return this.pendingWinner;
+          const { rIdx, pIdx } = this.target;
+          const w = State.game.roundWinners ? State.game.roundWinners[rIdx] : null;
+          return typeof w === "number" && w === pIdx;
+        },
+
+        updateHeader() {
+          if (!this.target) return;
+          const { rIdx, pIdx } = this.target;
+
+          const titleEl = document.getElementById("tileCalcTitle");
+          if (titleEl) titleEl.textContent = `Resultado da rodada ${rIdx + 1}`;
+
+          const subtitleEl = document.getElementById("tileCalcSubtitle");
+          if (subtitleEl) subtitleEl.textContent = State.game.players[pIdx] || "";
+
+          const winnerBtn = document.getElementById("tileCalcWinnerBtn");
+          const isWinner = this.isWinnerTarget();
+          if (winnerBtn) {
+            winnerBtn.className =
+              "p-2 rounded-xl border active:scale-95 transition-all " +
+              (isWinner
+                ? "border-yellow-300 bg-yellow-100 text-yellow-800"
+                : "border-yellow-200 text-slate-600 hover:text-yellow-900 hover:bg-yellow-50");
+            winnerBtn.title = isWinner ? "Vencedor" : "Marcar como vencedor";
+            winnerBtn.setAttribute(
+              "aria-label",
+              isWinner ? "Vencedor" : "Marcar como vencedor"
+            );
+
+            // Mostrar/ocultar rótulo textual ao lado do ícone
+            const lbl = winnerBtn.querySelector('#tileCalcWinnerLabel');
+            if (lbl) lbl.classList.toggle('hidden', !isWinner);
+          } // end winnerBtn
+
+          const notice = document.getElementById("tileCalcWinnerNotice");
+          if (notice) notice.classList.toggle("hidden", !isWinner);
+
+          const totalLabel = document.getElementById("tileCalcTotalLabel");
+          if (totalLabel) totalLabel.textContent = isWinner ? "Vencedor" : "Total";
+
+          const totalDesc = document.getElementById("tileCalcTotalDesc");
+          if (totalDesc)
+            totalDesc.textContent = isWinner
+              ? "Pontuação automática"
+              : "Lançado negativo";
+
+          const grid = document.getElementById("tileCalcGrid");
+          if (grid) {
+            grid.parentElement.classList.toggle("hidden", isWinner);
+          }
+
+          this.updateApplyBtnStyle();
+        },
+
+        updateApplyBtnStyle() {
+          const applyBtn = document.getElementById("tileCalcApplyBtn");
+          if (!applyBtn) return;
+
+          applyBtn.disabled = false;
+          const anySelected = Array.isArray(this.counts)
+            ? this.counts.some((n) => (n || 0) > 0)
+            : false;
+
+          const winnerSelected = this.isWinnerTarget();
+
+          applyBtn.className =
+            "flex-1 py-3 rounded-xl shadow-lg inline-flex items-center justify-center gap-2 font-black " +
+            (anySelected || winnerSelected
+              ? "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200");
+        },
+
+        toggleWinner() {
+          if (!this.target) return;
+          this.pendingWinner = !this.isWinnerTarget();
+          this.updateHeader();
+        },
+
+        inc(i) {
+          if (typeof this.counts[i] !== "number") this.counts[i] = 0;
+          this.counts[i] = Math.min(99, this.counts[i] + 1);
+          this.updateTileCount(i);
+          this.updateTotal();
+        },
+
+        dec(i) {
+          if (typeof this.counts[i] !== "number") this.counts[i] = 0;
+          this.counts[i] = Math.max(0, this.counts[i] - 1);
+          this.updateTileCount(i);
+          this.updateTotal();
+        },
+
+        sum() {
+          let s = 0;
+          for (let i = 0; i < this.counts.length; i++) {
+            const c = this.counts[i] || 0;
+            s += c * this.values[i];
+          }
+          return s;
+        },
+
+        total() {
+          const s = this.sum();
+          return -s;
+        },
+
+        updateTotal() {
+          const el = document.getElementById("tileCalcTotal");
+          if (!el) return;
+          if (this.isWinnerTarget()) {
+            el.textContent = "Auto";
+            el.className = "text-2xl font-black tabular-nums text-yellow-800";
+            this.updateApplyBtnStyle();
+            return;
+          }
+
+          const total = this.total();
+          el.textContent = total > 0 ? `+${total}` : `${total}`;
+          el.className =
+            "text-2xl font-black tabular-nums " +
+            (total < 0
+              ? "text-rose-600"
+              : total > 0
+              ? "text-emerald-600"
+              : "text-slate-600");
+
+          this.updateApplyBtnStyle();
+        },
+
+        updateTileCount(i) {
+          const el = document.getElementById(`tileCount-${i}`);
+          if (!el) return;
+          const count = this.counts[i] || 0;
+          el.textContent = count;
+
+          const isJoker = i === 13;
+          const selected = count > 0;
+
+          const card = document.getElementById(`tileCard-${i}`);
+          if (card) {
+            card.className =
+              "rounded-2xl border bg-white p-2 transition-colors " +
+              (selected ? "border-orange-200" : "border-slate-200");
+          }
+
+          const label = document.getElementById(`tileLabel-${i}`);
+          if (label) {
+            label.className =
+              "w-8 h-8 rounded-xl flex items-center justify-center transition-colors " +
+              (selected
+                ? "bg-orange-500 text-white"
+                : "bg-slate-100 text-slate-800") +
+              (isJoker ? "" : " font-black");
+          }
+
+          const badge = document.getElementById(`tileBadge-${i}`);
+          if (badge) {
+            badge.className =
+              "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-black shrink-0 transition-colors " +
+              (count > 0
+                ? "bg-orange-100 text-orange-800"
+                : "bg-slate-100 text-slate-700");
+          }
+
+          const decBtn = document.getElementById(`tileDec-${i}`);
+          if (decBtn) {
+            decBtn.className =
+              "flex-1 h-9 rounded-xl font-black active:scale-95 transition-colors " +
+              (selected
+                ? "bg-rose-100 text-rose-700 hover:bg-rose-200"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200");
+          }
+
+          const incBtn = document.getElementById(`tileInc-${i}`);
+          if (incBtn) {
+            incBtn.className =
+              "flex-1 h-9 rounded-xl font-black active:scale-95 transition-colors " +
+              (selected
+                ? "bg-orange-500 text-white hover:bg-orange-600"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200");
+          }
+        },
+
+        render() {
+          const grid = document.getElementById("tileCalcGrid");
+          if (!grid) return;
+          const jokerSvg = `
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 512 512"
+              preserveAspectRatio="xMidYMid meet"
+              class="w-5 h-5"
+              role="img"
+              aria-label="Curinga"
+            >
+              <g
+                transform="translate(0,512) scale(0.1,-0.1)"
+                fill="currentColor"
+                stroke="none"
+              >
+                <path
+                  d="M2330 4464 c-281 -50 -407 -88 -585 -174 -481 -232 -810 -650 -980 -1245 -46 -162 -58 -269 -52 -475 6 -192 14 -240 66 -416 94 -314 237 -569 450 -805 365 -402 921 -615 1491 -571 183 15 268 31 425 83 320 106 590 284 821 541 487 542 596 1340 275 2013 -103 216 -197 351 -360 519 -207 212 -433 354 -711 447 -214 71 -284 82 -565 84 -137 2 -261 1 -275 -1z m578 -253 c628 -139 1113 -632 1252 -1271 132 -603 -112 -1231 -630 -1622 -120 -90 -334 -201 -477 -247 -534 -172 -1124 -43 -1566 344 -285 249 -470 589 -528 970 -18 118 -15 352 5 465 34 197 118 437 202 582 113 196 290 396 451 511 197 140 446 239 712 282 129 21 457 13 579 -14z"
+                />
+                <path
+                  d="M1588 3417 c-73 -25 -151 -75 -230 -145 -83 -76 -99 -137 -40 -161 37 -15 63 -5 133 52 77 63 185 131 243 153 58 21 163 24 219 5 21 -7 71 -42 110 -78 136 -123 171 -140 241 -113 74 28 -11 163 -144 230 -113 57 -178 73 -325 77 -127 3 -146 1 -207 -20z"
+                />
+                <path
+                  d="M3270 3396 c-142 -33 -258 -85 -326 -148 -37 -34 -44 -47 -44 -78 0 -47 20 -65 74 -65 34 0 55 10 126 62 47 34 112 75 145 90 53 25 71 28 160 28 123 0 155 -15 265 -120 41 -39 86 -79 100 -88 32 -22 82 -22 110 1 19 15 21 24 15 52 -14 65 -156 190 -281 247 -52 24 -73 27 -174 30 -68 1 -138 -3 -170 -11z"
+                />
+                <path
+                  d="M1615 3191 c-11 -5 -31 -20 -43 -34 l-24 -25 25 -17 c17 -11 62 -19 149 -24 109 -8 136 -13 232 -50 88 -33 195 -60 239 -61 4 0 7 11 7 24 0 46 -72 92 -240 151 -92 33 -119 38 -215 41 -60 2 -119 0 -130 -5z"
+                />
+                <path
+                  d="M2455 3161 c-26 -29 -32 -113 -11 -146 33 -50 84 -17 92 60 8 84 -37 133 -81 86z"
+                />
+                <path
+                  d="M2676 3161 c-22 -25 -31 -109 -14 -141 17 -32 66 -40 85 -14 21 28 17 137 -5 157 -24 22 -45 21 -66 -2z"
+                />
+                <path
+                  d="M3320 3160 c-56 -14 -211 -70 -262 -96 -58 -29 -93 -71 -77 -91 16 -19 77 -9 209 33 174 55 229 65 332 59 111 -7 130 0 104 40 -29 44 -89 65 -186 64 -47 -1 -101 -5 -120 -9z"
+                />
+                <path
+                  d="M1561 3049 c-122 -24 -249 -79 -312 -136 -51 -46 -49 -71 9 -99 l42 -20 -25 -24 c-28 -26 -32 -57 -11 -85 17 -24 70 -24 116 0 32 16 34 16 109 -18 122 -56 208 -70 379 -65 204 7 312 43 312 104 0 14 -10 30 -25 40 -30 19 -104 16 -272 -12 -83 -14 -111 -14 -169 -5 -70 12 -284 99 -287 117 -2 15 78 54 126 60 44 6 46 5 63 -27 48 -93 96 -129 173 -129 47 0 55 4 116 55 35 30 70 55 76 55 7 0 34 -13 60 -30 109 -67 178 -78 226 -36 l28 25 -34 35 c-55 57 -275 159 -411 191 -70 16 -217 18 -289 4z m233 -134 c6 -17 -2 -45 -14 -45 -15 0 -32 30 -26 45 7 19 32 19 40 0z"
+                />
+                <path
+                  d="M3280 3012 c-30 -10 -88 -35 -128 -56 -41 -20 -111 -51 -155 -67 -99 -37 -119 -53 -115 -93 l3 -31 75 1 c65 0 86 5 154 37 43 20 84 37 91 37 7 0 30 -23 51 -52 45 -61 82 -75 165 -61 49 7 57 13 108 73 30 36 60 66 67 68 17 4 136 -45 146 -61 12 -19 9 -27 -10 -27 -10 0 -72 -19 -137 -41 -158 -55 -217 -59 -358 -25 -179 43 -247 33 -247 -34 0 -27 4 -30 68 -49 218 -64 347 -82 442 -62 30 6 97 30 149 52 l95 41 43 -22 c49 -25 96 -29 118 -10 20 16 19 59 -1 89 -16 22 -15 24 15 51 35 32 38 46 16 77 -19 27 -151 91 -285 138 -90 32 -120 38 -210 41 -83 3 -116 0 -160 -14z m128 -140 c3 -16 -2 -22 -16 -22 -27 0 -33 10 -21 32 13 24 33 19 37 -10z"
+                />
+                <path
+                  d="M2526 2758 c-3 -12 -15 -77 -26 -143 -11 -66 -32 -168 -47 -228 -14 -59 -23 -110 -19 -114 13 -13 219 -16 250 -4 22 9 27 16 23 34 -32 148 -47 241 -56 341 -6 65 -12 120 -13 121 -2 2 -26 6 -55 10 -49 6 -52 5 -57 -17z"
+                />
+                <path
+                  d="M2156 2314 c-3 -9 -6 -45 -6 -82 0 -77 22 -131 75 -182 32 -31 42 -34 103 -38 85 -5 102 -19 102 -83 0 -86 73 -138 171 -123 66 11 89 38 96 112 3 34 10 65 14 68 5 3 46 9 91 14 78 9 85 11 115 46 75 85 102 209 57 255 l-22 21 -14 -23 c-95 -156 -119 -176 -225 -189 -64 -8 -70 -11 -108 -54 l-40 -46 -34 41 c-39 47 -93 74 -168 84 -60 8 -73 20 -108 100 -15 33 -34 68 -42 78 -20 21 -49 22 -57 1z"
+                />
+                <path
+                  d="M1708 2018 c-9 -18 -45 -66 -81 -106 -71 -80 -84 -113 -68 -184 11 -49 49 -88 86 -88 29 0 46 24 70 99 19 60 45 91 75 91 11 0 95 -29 186 -65 253 -101 390 -136 551 -142 208 -9 290 8 637 131 87 31 166 54 176 51 21 -7 34 -32 63 -120 22 -69 23 -70 59 -73 32 -3 40 2 64 34 22 29 29 50 32 100 l4 63 -49 53 c-28 29 -66 79 -86 111 -56 88 -86 80 -145 -39 -67 -133 -138 -160 -449 -169 -117 -3 -226 -10 -243 -15 -21 -6 -38 -5 -57 5 -35 18 -89 24 -313 34 -261 11 -302 31 -378 182 -36 72 -38 74 -77 77 -37 3 -42 0 -57 -30z"
+                />
+                <path
+                  d="M1761 1704 c-33 -42 -8 -72 96 -113 29 -11 106 -54 171 -95 239 -149 341 -186 517 -186 171 0 333 54 639 213 154 80 187 109 168 152 -8 16 -20 25 -35 25 -13 0 -111 -29 -218 -65 -249 -82 -361 -105 -519 -105 -164 0 -271 23 -559 121 -129 43 -236 79 -237 79 -1 0 -12 -12 -23 -26z"
+                />
+              </g>
+            </svg>
+          `;
+
+          let html = "";
+          for (let i = 0; i < 14; i++) {
+            const isJoker = i === 13;
+            const label = isJoker
+              ? `<div class="flex items-center gap-2 min-w-0">
+                  <div id="tileLabel-${i}" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center transition-colors">
+                    ${jokerSvg}
+                  </div>
+                  <span class="font-black text-slate-800 text-sm truncate">Curinga</span>
+                </div>`
+              : `<div id="tileLabel-${i}" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black transition-colors">${i + 1}</div>`;
+            const sub = isJoker
+              ? `<div class="text-[11px] font-bold text-slate-500">30 pts</div>`
+              : `<div class="text-[11px] font-bold text-slate-500">${i + 1} pt${
+                  i + 1 === 1 ? "" : "s"
+                }</div>`;
+
+            html += `
+              <div id="tileCard-${i}" class="rounded-2xl border border-slate-200 bg-white p-2 transition-colors">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    ${label}
+                    ${sub}
+                  </div>
+                  <div id="tileBadge-${i}" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-black shrink-0 transition-colors">
+                    <span class="text-slate-500">x</span>
+                    <span id="tileCount-${i}" class="tabular-nums">0</span>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <button
+                    onclick="TileCalc.dec(${i})"
+                    id="tileDec-${i}"
+                    class="flex-1 h-9 rounded-xl bg-slate-100 text-slate-700 font-black hover:bg-slate-200 active:scale-95 transition-colors"
+                    aria-label="Diminuir"
+                    title="Diminuir"
+                  >
+                    −
+                  </button>
+                  <button
+                    id="addPlayerBtn"
+                    onclick="TileCalc.inc(${i})"
+                    id="tileInc-${i}"
+                    class="flex-1 h-9 rounded-xl bg-slate-100 text-slate-700 font-black hover:bg-slate-200 active:scale-95 transition-colors"
+                    aria-label="Aumentar"
+                    title="Aumentar"
+                  >
+                    +
+                  </button>
+                </div>
+                    id="addPlayerBtnPlayers"
+              </div>
+            `;
+          }
+
+          grid.innerHTML = html;
+
+          // Safety: remove any stray text nodes that might contain HTML-like snippets
+          // (e.g. 'id="addPlayer' appearing due to unexpected content). This prevents
+          // rendering attribute-like strings inside tiles — keep a console trace for debugging.
+          try {
+            const walker = document.createTreeWalker(grid, NodeFilter.SHOW_TEXT, null, false);
+            const toRemove = [];
+            while (walker.nextNode()) {
+              const t = walker.currentNode;
+              if (t && typeof t.textContent === 'string' && /id=\"/.test(t.textContent)) {
+                toRemove.push(t);
+              }
+            }
+            toRemove.forEach(n => n.parentNode && n.parentNode.removeChild(n));
+            if (toRemove.length) console.warn('Removed', toRemove.length, 'stray text nodes from tileCalcGrid');
+          } catch (e) {
+            console.warn('Error cleaning tileCalcGrid text nodes', e);
+          }
+        },
+
+        apply() {
+          if (!this.target) return;
+          const { rIdx, pIdx } = this.target;
+
+          const input = document.getElementById(`cell-${rIdx}-${pIdx}`);
+          if (!input) {
+            this.close();
+            return;
+          }
+
+          const currentWinner =
+            State.game.roundWinners && typeof State.game.roundWinners[rIdx] === "number"
+              ? State.game.roundWinners[rIdx]
+              : null;
+
+          // Se o usuário marcou como vencedor, só salva o vencedor ao clicar em Aplicar.
+          if (this.isWinnerTarget()) {
+            if (!State.game.roundWinners) State.game.roundWinners = {};
+
+            if (typeof currentWinner === "number" && currentWinner !== pIdx) {
+              const oldInput = document.getElementById(`cell-${rIdx}-${currentWinner}`);
+              if (oldInput) {
+                oldInput.value = "";
+                Actions.applyScoreValue(rIdx, currentWinner, oldInput, "", {
+                  skipRecalc: true,
+                });
+              } else {
+                State.game.rounds[rIdx][currentWinner] = "";
+              }
+            }
+
+            State.game.roundWinners[rIdx] = pIdx;
+
+            // Limpa pontuação/detalhes do vencedor para evitar valores antigos.
+            input.value = "0";
+            Actions.applyScoreValue(rIdx, pIdx, input, "0", {
+              skipRecalc: true,
+            });
+
+            State.save();
+            Actions.recalculateWinnerForRound(rIdx);
+            Render.totals();
+            Render.leaderboard();
+            this.close();
+            return;
+          }
+
+          // Se antes era vencedor e agora desmarcou, remove o vencedor ao clicar em Aplicar.
+          if (currentWinner === pIdx) {
+            delete State.game.roundWinners[rIdx];
+            input.value = "";
+            Actions.applyScoreValue(rIdx, pIdx, input, "", {
+              skipRecalc: true,
+            });
+          }
+
+          const total = this.total();
+          const val = total.toString();
+          input.value = val;
+          Actions.applyScoreValue(rIdx, pIdx, input, val, {
+            tileCounts: this.counts.slice(0, 14),
+          });
+          this.close();
+        },
+      };
+
+      const Actions = {
+        movePlayerUp(pIdx) {
+          this.movePlayer(pIdx, -1);
+        },
+
+        movePlayerDown(pIdx) {
+          this.movePlayer(pIdx, 1);
+        },
+
+        movePlayer(pIdx, delta) {
+          if (State.isGameStarted()) {
+            showError(
+              "A partida já começou. Para reordenar jogadores, reinicie o jogo."
+            );
+            return;
+          }
+
+          if (!Array.isArray(State.game.players)) return;
+          const from = Number(pIdx);
+          if (!Number.isInteger(from)) return;
+
+          const to = from + Number(delta);
+          if (!Number.isInteger(to)) return;
+          if (to < 0 || to >= State.game.players.length) return;
+          if (from === to) return;
+
+          // Troca na lista de jogadores
+          const tmpName = State.game.players[from];
+          State.game.players[from] = State.game.players[to];
+          State.game.players[to] = tmpName;
+
+          // Troca na matriz de rodadas (colunas)
+          if (Array.isArray(State.game.rounds)) {
+            State.game.rounds.forEach((row) => {
+              if (!Array.isArray(row)) return;
+              const tmp = row[from];
+              row[from] = row[to];
+              row[to] = tmp;
+            });
+          }
+
+          // Troca detalhes de pedras por célula
+          if (State.game.tileDetails && typeof State.game.tileDetails === "object") {
+            const td = State.game.tileDetails;
+            const roundsLen = Array.isArray(State.game.rounds)
+              ? State.game.rounds.length
+              : 0;
+            for (let r = 0; r < roundsLen; r++) {
+              const k1 = `${r}-${from}`;
+              const k2 = `${r}-${to}`;
+              const v1 = td[k1];
+              const v2 = td[k2];
+
+              if (typeof v1 === "undefined" && typeof v2 === "undefined") continue;
+              if (typeof v2 === "undefined") {
+                delete td[k1];
+                td[k2] = v1;
+                continue;
+              }
+              if (typeof v1 === "undefined") {
+                delete td[k2];
+                td[k1] = v2;
+                continue;
+              }
+
+              td[k1] = v2;
+              td[k2] = v1;
+            }
+          }
+
+          // Ajusta vencedores por rodada (índices)
+          if (State.game.roundWinners && typeof State.game.roundWinners === "object") {
+            const rw = State.game.roundWinners;
+            Object.keys(rw).forEach((rk) => {
+              const w = rw[rk];
+              if (w === from) rw[rk] = to;
+              else if (w === to) rw[rk] = from;
+            });
+          }
+
+          // Mantém consistência do estado de edição de jogador
+          if (typeof UI.editingPlayerIdx === "number") {
+            if (UI.editingPlayerIdx === from) UI.editingPlayerIdx = to;
+            else if (UI.editingPlayerIdx === to) UI.editingPlayerIdx = from;
+          }
+
+          State.save();
+          Render.all();
+        },
+
+        addPlayerFrom(inputId) {
+          const inp = document.getElementById(inputId);
+          if (!inp) return;
+
+          if (State.game.locked === true) {
+            showError(
+              "O jogo já começou. Não é possível adicionar participantes agora."
+            );
+            return;
+          }
+
+          if (State.game.players.length >= GameLimits.MAX_PLAYERS) {
+            showError(
+              `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido.`
+            );
+            return;
+          }
+
+          const name = inp.value.trim();
+          if (!name) return;
+
+          const MAX_NAME_LENGTH = 20;
+          const safeName = name.length > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name;
+
+          State.game.players.push(safeName);
+          // Expandir matriz
+          State.game.rounds.forEach((r) => r.push(""));
+          // Garantir rodadas = jogadores
+          while (State.game.rounds.length < State.game.players.length) {
+            State.game.rounds.push(
+              new Array(State.game.players.length).fill("")
+            );
+          }
+
+          inp.value = "";
+          State.save();
+          Render.all();
+        },
+
+        handleEnterFrom(e, inputId) {
+          if (e.key === "Enter") this.addPlayerFrom(inputId);
+        },
+
+        toggleTimer() {
+          // Pausar não precisa de confirmação
+          if (State.timer.r) {
+            Timer.toggle();
+            return;
+          }
+
+          // Se ainda não iniciou a 1ª rodada, confirmar o início antes de começar o timer
+          const canStart =
+            !State.isGameStarted() &&
+            State.game.players.length > 0 &&
+            State.game.currIdx === 0 &&
+            State.game.editingIdx === null;
+
+          if (canStart) {
+            showConfirm(
+              "Iniciar a 1ª rodada?",
+              "Ao iniciar, não será mais possível adicionar participantes e os campos serão liberados.",
+              () => {
+                State.startGame();
+                Render.updateAddPlayerState();
+                Timer.toggle();
+              }
+            );
+            return;
+          }
+
+          Timer.toggle();
+        },
+
+        startFirstRound() {
+          if (State.isGameStarted()) return;
+          if (State.game.players.length < GameLimits.MIN_PLAYERS) {
+            showError(
+              `Adicione pelo menos ${GameLimits.MIN_PLAYERS} jogadores para iniciar.`
+            );
+            return;
+          }
+          showConfirm(
+            "Iniciar a 1ª rodada?",
+            "Ao iniciar, não será mais possível adicionar participantes e os campos serão liberados.",
+            () => {
+              State.startGame();
+              Render.all();
+            }
+          );
+        },
+
+        beginEditPlayer(pIdx) {
+          UI.editingPlayerIdx = pIdx;
+          Render.playersManager();
+        },
+
+        cancelEditPlayer() {
+          UI.editingPlayerIdx = null;
+          Render.playersManager();
+        },
+
+        savePlayerName(pIdx) {
+          const el = document.getElementById(`playerNameInput-${pIdx}`);
+          if (!el) return;
+
+          const nextName = el.value.trim();
+          const prevName = (State.game.players[pIdx] || "").trim();
+
+          if (!nextName) {
+            showError("O nome não pode ficar vazio.");
+            el.value = prevName;
+            return;
+          }
+
+          if (nextName === prevName) {
+            UI.editingPlayerIdx = null;
+            Render.playersManager();
+            return;
+          }
+
+          showConfirm(
+            "Trocar nome do jogador?",
+            `De: ${prevName}\nPara: ${nextName}`,
+            () => {
+              State.game.players[pIdx] = nextName;
+              State.save();
+              UI.editingPlayerIdx = null;
+              Render.all();
+            }
+          );
+        },
+
+        removePlayer(pIdx) {
+          const name = State.game.players[pIdx];
+          if (!name) return;
+
+          if (State.isGameStarted()) {
+            showError(
+              "A partida já começou. Para remover jogadores, reinicie o jogo."
+            );
+            return;
+          }
+
+          if (State.game.players.length <= GameLimits.MIN_PLAYERS) {
+            showError(
+              `Mínimo de ${GameLimits.MIN_PLAYERS} jogadores. Para remover mais, reinicie o jogo.`
+            );
+            return;
+          }
+
+          showConfirm(
+            "Remover jogador?",
+            `Remover ${name}? Isso também ajusta a tabela de rodadas.`,
+            () => {
+              State.game.players.splice(pIdx, 1);
+
+              // Remove a coluna do jogador em todas as rodadas
+              State.game.rounds.forEach((row) => {
+                if (Array.isArray(row)) row.splice(pIdx, 1);
+              });
+
+              // Garante que o número de rodadas não exceda nº de jogadores
+              while (State.game.rounds.length > State.game.players.length) {
+                State.game.rounds.pop();
+              }
+
+              // Garante linhas com tamanho correto
+              State.game.rounds.forEach((row) => {
+                if (!Array.isArray(row)) return;
+                row.length = State.game.players.length;
+              });
+
+              UI.editingPlayerIdx = null;
+              State.save();
+              Render.all();
+            }
+          );
+        },
+
+        addPlayer() {
+          this.addPlayerFrom("newPlayerName");
+        },
+
+        handleEnter(e) {
+          if (e.key === "Enter") this.addPlayer();
+        },
+
+        toggleLeaderboardExpanded() {
+          UI.leaderboardExpanded = !UI.leaderboardExpanded;
+          Render.leaderboard();
+        },
+
+        toggleLeaderboardOpen() {
+          UI.leaderboardOpen = !UI.leaderboardOpen;
+          Render.leaderboard();
+        },
+
+        applyScoreValue(rIdx, pIdx, el, val, options = {}) {
+          State.game.rounds[rIdx][pIdx] = val;
+
+          const key = `${rIdx}-${pIdx}`;
+          if (!State.game.tileDetails) State.game.tileDetails = {};
+          if (Array.isArray(options.tileCounts) && options.tileCounts.length === 14) {
+            State.game.tileDetails[key] = options.tileCounts.map((n) =>
+              typeof n === "number" ? n : 0
+            );
+          } else {
+            delete State.game.tileDetails[key];
+          }
+
+          State.save();
+
+          const n = parseInt(val);
+          el.className = el.className.replace(/text-\w+-\d+/g, "");
+          if (isNaN(n)) el.classList.add("text-slate-800");
+          else if (n > 0) el.classList.add("text-emerald-600");
+          else if (n < 0) el.classList.add("text-rose-600");
+          else {
+            const w = State.game.roundWinners ? State.game.roundWinners[rIdx] : null;
+            if (typeof w === "number" && w === pIdx) el.classList.add("text-emerald-600");
+            else el.classList.add("text-slate-400");
+          }
+
+          // Update Totals but NOT validation dialog
+          Render.totals();
+          Render.leaderboard();
+          Render.updateAddPlayerState();
+
+          if (options.skipRecalc !== true) {
+            this.recalculateWinnerForRound(rIdx, pIdx);
+          }
+        },
+
+        recalculateWinnerForRound(rIdx, changedPIdx) {
+          if (!State.game.roundWinners) return;
+          const winner = State.game.roundWinners[rIdx];
+          if (typeof winner !== "number") return;
+          if (typeof changedPIdx === "number" && changedPIdx === winner) return;
+
+          const round = State.game.rounds[rIdx];
+          if (!Array.isArray(round)) return;
+
+          let sumOthers = 0;
+          for (let i = 0; i < round.length; i++) {
+            if (i === winner) continue;
+            const v = round[i];
+            if (v === "" || v === null || typeof v === "undefined") continue;
+            const n = parseInt(v);
+            if (isNaN(n)) continue;
+            sumOthers += n;
+          }
+
+          const winnerScore = (-sumOthers).toString();
+          const input = document.getElementById(`cell-${rIdx}-${winner}`);
+          if (input) {
+            input.value = winnerScore;
+            this.applyScoreValue(rIdx, winner, input, winnerScore, {
+              skipRecalc: true,
+            });
+          } else {
+            State.game.rounds[rIdx][winner] = winnerScore;
+            State.save();
+            Render.totals();
+            Render.leaderboard();
+          }
+        },
+
+        handleInput(rIdx, pIdx, el) {
+          if (!State.isGameStarted() && State.game.editingIdx === null) {
+            showError("Inicie a 1ª rodada para lançar os valores.");
+            el.value = "";
+            return;
+          }
+
+          let val = el.value;
+          if (/^\d+$/.test(val)) {
+            val = "-" + val;
+            el.value = val;
+          }
+
+          this.applyScoreValue(rIdx, pIdx, el, val);
+        },
+
+        openTileCalc(rIdx, pIdx) {
+          if (!State.isGameStarted() && State.game.editingIdx === null) {
+            showError("Inicie a 1ª rodada para lançar os valores.");
+            return;
+          }
+
+          const isEditingThisRound = State.game.editingIdx === rIdx;
+          const isCurrentRoundUnlocked =
+            State.game.editingIdx === null && State.game.currIdx === rIdx;
+
+          if (!isEditingThisRound && !isCurrentRoundUnlocked) {
+            showError(
+              "Essa rodada está bloqueada. Use o ícone de edição para alterar."
+            );
+            return;
+          }
+
+          TileCalc.open(rIdx, pIdx);
+        },
+
+        handleSmartAction() {
+          if (!State.isGameStarted()) {
+            this.startFirstRound();
+            return;
+          }
+
+          // Se o jogo já terminou, clicar no botão deve abrir o resultado final.
+          if (
+            State.game.editingIdx === null &&
+            State.game.currIdx >= State.game.rounds.length
+          ) {
+            openGameOverModal();
+            return;
+          }
+
+          if (State.game.players.length < 2)
+            return alert("Adicione jogadores.");
+
+          const targetIdx =
+            State.game.editingIdx !== null
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const round = State.game.rounds[targetIdx];
+
+          let empty = [],
+            sum = 0,
+            hasErr = false,
+            pos = 0,
+            neg = 0;
+          round.forEach((v, i) => {
+            if (v === "" || v === null) empty.push(i);
+            else {
+              const n = parseInt(v);
+              if (isNaN(n)) hasErr = true;
+              else {
+                sum += n;
+                if (n > 0) pos += n;
+                else neg += n;
+              }
+            }
+          });
+
+          if (hasErr) return alert("Valores inválidos.");
+
+          // 1. Validação Manual (0 vazios)
+          if (empty.length === 0) {
+            if (sum !== 0) {
+              showErrorDialog(sum, pos, neg);
+            } else {
+              if (State.game.editingIdx !== null) {
+                showConfirm(
+                  "Salvar Alterações?",
+                  "A soma está correta (0).",
+                  () => this.finishAction(targetIdx)
+                );
+              } else {
+                showConfirm(
+                  "Concluir Rodada?",
+                  "A soma está correta (0).",
+                  () => this.finishAction(targetIdx)
+                );  
+              }
+            }
+            return;
+          }
+
+          // 2. Auto-calc (1 vazio)
+          if (empty.length === 1) {
+            const winScore = sum * -1;
+            const winnerName = State.game.players[empty[0]];
+            // Usar o modal de vencedor melhorado para mostrar nome e pontuação
+            openWinnerModal(targetIdx, empty[0], winScore);
+            return;
+          }
+
+          showError(
+            "Erro: Mais de um jogador vazio. Preencha todos os perdedores."
+          );
+        },
+
+        finishAction(rIdx) {
+          const wasEditing = State.game.editingIdx !== null;
+          const wasFinished =
+            State.isGameStarted() && State.game.currIdx >= State.game.rounds.length;
+
+          if (wasEditing) {
+            State.game.editingIdx = null;
+          } else if (State.game.currIdx < State.game.rounds.length) {
+            State.game.currIdx++;
+          }
+
+          const finishedNow =
+            !wasEditing &&
+            !wasFinished &&
+            State.isGameStarted() &&
+            State.game.currIdx >= State.game.rounds.length;
+
+          State.save();
+          Render.all();
+
+          if (finishedNow) {
+            openGameOverModal();
+          }
+
+          // Se o jogo já estava finalizado e o usuário salvou uma edição,
+          // reexibe o resultado final atualizado.
+          if (
+            wasEditing &&
+            State.isGameStarted() &&
+            State.game.currIdx >= State.game.rounds.length
+          ) {
+            openGameOverModal();
+          }
+        },
+
+        enableEdit(rIdx) {
+          showConfirm(
+            "Editar Rodada Anterior?",
+            "A rodada atual será bloqueada temporariamente.",
+            () => {
+              State.game.editingIdx = rIdx;
+              State.save();
+              Render.all();
+            }
+          );
+        },
+
+        switchTab(t) {
+          document
+            .querySelectorAll(".nav-link")
+            .forEach((e) => e.classList.remove("active"));
+          document.getElementById(`nav-${t}`).classList.add("active");
+          document
+            .getElementById("tab-game")
+            .classList.toggle("hidden", t !== "game");
+          document
+            .getElementById("tab-players")
+            .classList.toggle("hidden", t !== "players");
+          document
+            .getElementById("tab-rules")
+            .classList.toggle("hidden", t !== "rules");
+          document
+            .getElementById("tab-about")
+            .classList.toggle("hidden", t !== "about");
+        },
+
+        // Timer Settings
+        openTimerSettings() {
+          document.getElementById("timerModal").classList.remove("hidden");
+          const minutes = Math.round(State.timer.d / 60);
+          document.getElementById("customDuration").value = minutes;
+          document.getElementById("soundToggle").checked = State.timer.s;
+
+          const rule = State.game.timeRule || (minutes === 1 ? "official" : minutes === 2 ? "alternative" : "custom");
+          const radio = document.querySelector(`input[name=\"timeRule\"][value=\"${rule}\"]`);
+          if (radio) radio.checked = true;
+          document.getElementById("autoRotateToggle").checked = State.game.turnAutoRotate !== false;
+        },
+        closeTimerSettings() {
+          document.getElementById("timerModal").classList.add("hidden");
+        },
+        setTempDuration(v) {
+          document.getElementById("customDuration").value = v;
+        },
+        saveTimerSettings() {
+          const selected = document.querySelector('input[name="timeRule"]:checked');
+          const rule = selected ? selected.value : 'custom';
+
+          const minutesInput = document.getElementById("customDuration").value;
+          const minutes = parseInt(minutesInput);
+
+          let seconds = 60;
+          if (rule === 'official') seconds = 60;
+          else if (rule === 'alternative') seconds = 120;
+          else if (rule === 'impatient') seconds = 30;
+          else if (rule === 'custom') {
+            if (Number.isNaN(minutes)) {
+              showError("Informe um número de minutos válido.");
+              return;
+            }
+            if (minutes < 1 || minutes >= 60) {
+              showError("O tempo deve ser maior ou igual a 1 e menor que 60 minutos.");
+              return;
+            }
+            seconds = minutes * 60;
+          }
+
+          State.timer.d = seconds;
+          State.timer.s = document.getElementById("soundToggle").checked;
+          State.game.timeRule = rule;
+          State.game.turnAutoRotate = document.getElementById("autoRotateToggle").checked;
+          State.saveTimer();
+          Timer.reset();
+          this.closeTimerSettings();
+        },
+        rotateToNextPlayer() {
+          if (!Array.isArray(State.game.players) || State.game.players.length === 0) return;
+          State.game.turnIdx = (typeof State.game.turnIdx === 'number' ? State.game.turnIdx : 0) + 1;
+          State.game.turnIdx = State.game.turnIdx % State.game.players.length;
+          State.save();
+          Render.playersManager();
+          Timer.updateUI();
+        },
+      };
+
+      // === RENDER ENGINE ===
+      const Render = {
+        all() {
+          this.table();
+          this.totals();
+          this.updateAddPlayerState();
+          this.actionButton();
+          this.leaderboard();
+          this.playersManager();
+        },
+
+        playersManager() {
+          const wrap = document.getElementById("playersManager");
+          if (!wrap) return;
+
+          const penalties = State.game.penalties || {};
+
+          // helper para truncar nomes longos para exibição compacta
+          const formatForTimer = (n, max = 12) => {
+            if (!n) return '';
+            return n.length > max ? n.substring(0, max - 1) + '…' : n;
+          };
+
+          if (State.game.players.length === 0) {
+            wrap.innerHTML =
+              '<div class="text-center text-sm text-slate-500 py-6">Nenhum jogador adicionado.</div>';
+            return;
+          }
+
+          const canRemove = !State.isGameStarted();
+          const canReorder = !State.isGameStarted();
+
+          // Totais e ranking (apenas visual; não altera a ordem dos jogadores na tabela)
+          const totals = new Array(State.game.players.length).fill(0);
+          (State.game.rounds || []).forEach((r) => {
+            if (!Array.isArray(r)) return;
+            r.forEach((v, i) => {
+              const n = parseInt(v);
+              if (!isNaN(n)) totals[i] += n;
+            });
+          });
+
+          const activeRoundIdx =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === "number"
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const winnerIdx =
+            State.game.roundWinners &&
+            typeof State.game.roundWinners[activeRoundIdx] === "number"
+              ? State.game.roundWinners[activeRoundIdx]
+              : null;
+
+          const ranked = totals
+            .map((s, i) => ({ i, n: State.game.players[i], s }))
+            .sort((a, b) => (b.s - a.s) || (a.i - b.i));
+
+          let html = "";
+
+          // Classificação
+          html += `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-black uppercase tracking-wide text-slate-500">Classificação da partida</div>
+                <div class="text-[11px] font-bold text-slate-400">Total</div>
+              </div>
+          `;
+
+          const trophySvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+          ranked.forEach((p, rank) => {
+            const isLead = rank === 0;
+            const isSecond = rank === 1;
+            const isThird = rank === 2;
+
+            const badgeBg = isLead
+              ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+              : isSecond
+              ? "bg-slate-100 border-slate-200 text-slate-700"
+              : isThird
+              ? "bg-orange-100 border-orange-200 text-orange-800"
+              : "bg-slate-100 border-slate-200 text-slate-600";
+
+            const isActiveRoundWinner =
+              typeof winnerIdx === "number" && winnerIdx === p.i;
+
+            const col =
+              p.s > 0
+                ? "text-emerald-600"
+                : p.s < 0
+                ? "text-rose-600"
+                : isActiveRoundWinner
+                ? "text-emerald-600"
+                : "text-slate-400";
+
+            const sign =
+              p.s > 0 || (p.s === 0 && isActiveRoundWinner) ? "+" : "";
+
+            const badgeContent = isLead
+              ? trophySvg
+              : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+            html += `
+              <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                      ${badgeContent}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                  </div>
+                  <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                </div>
+              </div>
+            `;
+          });
+
+          html += `
+            </div>
+            <div class="h-px bg-slate-100 my-3"></div>
+            <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2">Gerenciar jogadores</div>
+          `;
+
+          State.game.players.forEach((name, idx) => {
+            const penaltyCount = penalties[idx] || 0;
+            const isCurrentTurn = typeof State.game.turnIdx === 'number' && State.game.turnIdx === idx;
+            const isEditing = UI.editingPlayerIdx === idx;
+
+            if (isEditing) {
+              html += `
+                <div class="flex items-center gap-2">
+                  <input
+                    id="playerNameInput-${idx}"
+                    type="text"
+                    class="flex-1 p-3 bg-white border border-slate-200 rounded-xl text-base font-semibold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none"
+                    value="${String(name).replace(/"/g, "&quot;")}" 
+                    onkeypress="if(event.key==='Enter'){ Actions.savePlayerName(${idx}); }"
+                  />
+                  <button
+                    onclick="Actions.savePlayerName(${idx})"
+                    class="px-4 py-3 rounded-xl bg-slate-900 text-white font-bold"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onclick="Actions.cancelEditPlayer()"
+                    class="px-4 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              `;
+              return;
+            }
+
+            html += `
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-base font-bold text-slate-800 truncate">${name} ${penaltyCount > 0 ? `<span class="text-rose-600 font-black text-xs ml-2">+${penaltyCount}</span>` : ''} ${isCurrentTurn ? `<span class="ml-2 inline-block px-2 py-0.5 text-[11px] rounded-full bg-orange-50 text-orange-700 font-black">Atual</span>` : ''}</div>
+                  <div class="text-xs text-slate-500">Jogador #${idx + 1}</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    onclick="Actions.movePlayerUp(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center ${
+                      canReorder && idx > 0 ? "" : "opacity-50 pointer-events-none"
+                    }"
+                    title="${
+                      !canReorder
+                        ? "Não é possível reordenar após iniciar"
+                        : idx === 0
+                        ? "Já está no topo"
+                        : "Mover para cima"
+                    }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15.75L12 12l3.75 3.75M12 12v9" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-9 9 9" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick="Actions.movePlayerDown(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center ${
+                      canReorder && idx < State.game.players.length - 1
+                        ? ""
+                        : "opacity-50 pointer-events-none"
+                    }"
+                    title="${
+                      !canReorder
+                        ? "Não é possível reordenar após iniciar"
+                        : idx === State.game.players.length - 1
+                        ? "Já está no fim"
+                        : "Mover para baixo"
+                    }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 8.25L12 12l-3.75-3.75M12 12V3" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-9 9-9-9" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick="Actions.beginEditPlayer(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"
+                    title="Editar"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L16.862 4.487" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick="Actions.removePlayer(${idx})"
+                    class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center ${
+                      canRemove ? "" : "opacity-50 pointer-events-none"
+                    }"
+                    title="${
+                      canRemove
+                        ? "Remover jogador"
+                        : "Não é possível remover após iniciar"
+                    }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+
+          wrap.innerHTML = html;
+        },
+
+        updateAddPlayerState() {
+          const section = document.getElementById("addPlayerSection");
+          const sectionPlayers = document.getElementById("addPlayerSectionPlayersWrap");
+          const statusPill = document.getElementById("gameStatusPill");
+
+          const inpMain = document.getElementById("newPlayerName");
+          const inpPlayers = document.getElementById("newPlayerNamePlayers");
+          const btnMain = document.getElementById("addPlayerBtn");
+          const btnPlayers = document.getElementById("addPlayerBtnPlayers");
+
+          const atMax =
+            Array.isArray(State.game.players) &&
+            State.game.players.length >= GameLimits.MAX_PLAYERS;
+
+          const started = State.isGameStarted();
+          const finished =
+            started && State.game && State.game.currIdx >= State.game.rounds.length;
+
+          if (started) {
+            section.classList.add("hidden");
+            if (sectionPlayers) sectionPlayers.classList.add("hidden");
+
+            if (inpMain) inpMain.disabled = true;
+            if (inpPlayers) inpPlayers.disabled = true;
+            if (btnMain) btnMain.disabled = true;
+            if (btnPlayers) btnPlayers.disabled = true;
+
+            if (statusPill) {
+              statusPill.classList.remove("hidden");
+
+              if (finished) {
+                statusPill.className =
+                  "px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-black inline-flex items-center gap-1.5";
+                statusPill.title = "Jogo finalizado";
+                statusPill.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="hidden sm:inline">Jogo finalizado</span>
+                  <span class="sm:hidden">Final</span>
+                `;
+              } else {
+                statusPill.className =
+                  "px-2.5 py-1 rounded-full bg-orange-50 border border-orange-100 text-orange-700 text-xs font-black inline-flex items-center gap-1.5";
+                statusPill.title = "Partida em andamento";
+                statusPill.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v7.5a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z" />
+                  </svg>
+                  <span class="hidden sm:inline">Partida em andamento</span>
+                  <span class="sm:hidden">Em jogo</span>
+                `;
+              }
+            }
+          } else {
+            section.classList.remove("hidden");
+            if (sectionPlayers) sectionPlayers.classList.remove("hidden");
+            if (statusPill) statusPill.classList.add("hidden");
+
+            if (inpMain) {
+              inpMain.disabled = atMax;
+              inpMain.placeholder = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Nome do jogador...";
+              inpMain.classList.toggle("bg-slate-50", atMax);
+              inpMain.classList.toggle("opacity-70", atMax);
+            }
+            if (inpPlayers) {
+              inpPlayers.disabled = atMax;
+              inpPlayers.placeholder = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Nome do jogador...";
+              inpPlayers.classList.toggle("bg-slate-50", atMax);
+              inpPlayers.classList.toggle("opacity-70", atMax);
+            }
+
+            if (btnMain) {
+              btnMain.disabled = atMax;
+              btnMain.classList.toggle("opacity-50", atMax);
+              btnMain.classList.toggle("cursor-not-allowed", atMax);
+              btnMain.title = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Adicionar jogador";
+            }
+
+            if (btnPlayers) {
+              btnPlayers.disabled = atMax;
+              btnPlayers.classList.toggle("opacity-50", atMax);
+              btnPlayers.classList.toggle("cursor-not-allowed", atMax);
+              btnPlayers.title = atMax
+                ? `Limite de ${GameLimits.MAX_PLAYERS} jogadores atingido`
+                : "Adicionar jogador";
+            }
+          }
+        },
+
+        table() {
+          const empty = document.getElementById("emptyState");
+          const cont = document.getElementById("tableContainer");
+          const lboard = document.getElementById("leaderboardBar");
+
+          if (State.game.players.length === 0) {
+            empty.classList.remove("hidden");
+            cont.classList.add("hidden");
+            lboard.classList.add("hidden");
+            return;
+          }
+          empty.classList.add("hidden");
+          cont.classList.remove("hidden");
+          lboard.classList.remove("hidden");
+
+          let h =
+            '<th class="py-3 px-2 w-[50px] sticky left-0 z-20 bg-slate-50 border-r border-slate-200 text-center font-bold text-slate-400">Rodada</th>';
+          State.game.players.forEach(
+            (p) =>
+              (h += `<th class="py-3 px-2 min-w-[90px] text-center font-bold text-slate-700 truncate max-w-[110px]">${p}</th>`)
+          );
+          document.getElementById("headerRow").innerHTML = h;
+
+          let b = "";
+          State.game.rounds.forEach((rnd, rIdx) => {
+            const isEdit = State.game.editingIdx === rIdx;
+            const isCurr =
+              State.game.currIdx === rIdx && State.game.editingIdx === null;
+            const isPast = rIdx < State.game.currIdx;
+
+            let rClass = "border-b border-slate-100 ";
+            let sClass =
+              "sticky left-0 z-10 py-2 border-r border-slate-200 text-center ";
+            let ro = "readonly";
+
+            if (isEdit) {
+              rClass += "editing-round-row";
+              sClass += "bg-orange-50";
+              ro = "";
+            } else if (isCurr) {
+              rClass += "active-round-row";
+              sClass += "bg-white";
+              ro = State.isGameStarted() ? "" : "readonly";
+            } else if (isPast) {
+              rClass += "inactive-round-row";
+              sClass += "bg-slate-50";
+            } else {
+              rClass += "bg-white opacity-50";
+              sClass += "bg-white";
+            }
+
+            let icon = `<span class="block text-xs font-mono font-bold text-slate-300">${
+              rIdx + 1
+            }</span>`;
+            if (isEdit)
+              icon = `<span class="text-orange-600 font-bold text-xs">Edit</span>`;
+            else if (isCurr) {
+              if (State.game.editingIdx !== null) {
+                icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-slate-300 mx-auto"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>`;
+                ro = "readonly";
+                rClass = rClass.replace("active", "inactive");
+              } else
+                icon = `<span class="block text-xs font-mono font-bold text-orange-600">${
+                  rIdx + 1
+                }</span>`;
+            } else if (isPast && State.game.editingIdx === null) {
+              icon = `<button onclick="Actions.enableEdit(${rIdx})" class="mx-auto text-slate-300 hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg></button>`;
+            }
+
+            b += `<tr class="${rClass}"><td class="${sClass}">${icon}</td>`;
+            rnd.forEach((v, pIdx) => {
+              const isWinnerCell =
+                State.game.roundWinners &&
+                typeof State.game.roundWinners[rIdx] === "number" &&
+                State.game.roundWinners[rIdx] === pIdx;
+              const n = parseInt(v);
+              let c = "text-slate-800";
+              if (!isNaN(n))
+                c =
+                  n > 0
+                    ? "text-emerald-600"
+                    : n < 0
+                    ? "text-rose-600"
+                    : isWinnerCell
+                    ? "text-emerald-600"
+                    : "text-slate-400";
+              const ring =
+                isEdit || (isCurr && State.isGameStarted())
+                  ? "focus:ring-2 focus:ring-inset focus:ring-orange-500 bg-orange-50/10"
+                  : "focus:ring-0";
+              const winnerIcon = isWinnerCell
+                ? `<div class="absolute top-1 left-1 w-6 h-6 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-center text-yellow-800 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                      <path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" />
+                      <path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" />
+                    </svg>
+                  </div>`
+                : "";
+              b += `<td class="p-0 border-r border-slate-100 last:border-0 relative h-[52px]">${winnerIcon}<input id="cell-${rIdx}-${pIdx}" type="tel" inputmode="decimal" class="w-full h-full text-center text-lg font-bold bg-transparent outline-none transition-all ${c} ${ring} placeholder-slate-200" value="${v}" placeholder="-" ${ro} onfocus="this.select()" onclick="Actions.openTileCalc(${rIdx}, ${pIdx})" oninput="Actions.handleInput(${rIdx}, ${pIdx}, this)"></td>`;
+            });
+            b += "</tr>";
+          });
+          document.getElementById("tableBody").innerHTML = b;
+
+          let f =
+            '<td class="py-4 px-2 sticky left-0 z-20 bg-slate-900 border-r border-slate-700 text-center font-bold text-xs uppercase text-slate-300">Total</td>';
+          State.game.players.forEach(
+            (_, i) =>
+              (f += `<td id="total-${i}" class="text-center font-black text-lg py-3 text-slate-400">0</td>`)
+          );
+          document.getElementById("totalRow").innerHTML = f;
+        },
+
+        totals() {
+          let sums = new Array(State.game.players.length).fill(0);
+          State.game.rounds.forEach((r) =>
+            r.forEach((v, i) => {
+              const n = parseInt(v);
+              if (!isNaN(n)) sums[i] += n;
+            })
+          );
+          sums.forEach((s, i) => {
+            const el = document.getElementById(`total-${i}`);
+            if (el) {
+              el.innerText = s > 0 ? `+${s}` : s;
+              el.className = `text-center font-black text-lg py-3 ${
+                s > 0
+                  ? "text-emerald-400"
+                  : s < 0
+                  ? "text-rose-400"
+                  : "text-slate-500"
+              }`;
+            }
+          });
+          return sums;
+        },
+
+        leaderboard() {
+          const sums = this.totals();
+          const list = sums
+            .map((s, i) => ({ n: State.game.players[i], s, i }))
+            .sort((a, b) => b.s - a.s);
+          const el = document.getElementById("leaderboardList");
+          const toggleBtn = document.getElementById("leaderboardToggleBtn");
+          const body = document.getElementById("leaderboardBody");
+          const chevron = document.getElementById("leaderboardChevron");
+          if (!el) return;
+
+          let h = "";
+
+          const activeRoundIdx =
+            State.game.editingIdx !== null && typeof State.game.editingIdx === "number"
+              ? State.game.editingIdx
+              : State.game.currIdx;
+          const winnerIdx =
+            State.game.roundWinners &&
+            typeof State.game.roundWinners[activeRoundIdx] === "number"
+              ? State.game.roundWinners[activeRoundIdx]
+              : null;
+
+          const hasMoreThanPodium = list.length > 3;
+          const expanded = UI.leaderboardExpanded === true;
+          const open = UI.leaderboardOpen === true;
+
+          if (body) body.classList.toggle("hidden", !open);
+          if (chevron) {
+            chevron.innerHTML = open
+              ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                   <path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" />
+                 </svg>`
+              : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                   <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                 </svg>`;
+          }
+
+          if (!open) {
+            el.innerHTML = "";
+            if (toggleBtn) toggleBtn.classList.add("hidden");
+            return;
+          }
+
+          const showAll = expanded || !hasMoreThanPodium;
+          const visible = showAll ? list : list.slice(0, 3);
+
+          if (toggleBtn) {
+            if (hasMoreThanPodium) {
+              toggleBtn.classList.remove("hidden");
+              toggleBtn.title = showAll ? "Mostrar menos" : "Ver todos";
+              toggleBtn.innerHTML = showAll
+                ? `<span class="sr-only">Mostrar menos</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                   </svg>`
+                : `<span class="sr-only">Ver todos</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M3 5.75A.75.75 0 013.75 5h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zM3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10zm0 4.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+                   </svg>`;
+            } else {
+              toggleBtn.classList.add("hidden");
+              UI.leaderboardExpanded = false;
+            }
+          }
+
+          if (showAll) {
+            el.className = "flex flex-col gap-1 max-h-44 overflow-y-auto pr-1 -mr-1";
+          } else {
+            el.className = "flex gap-2 overflow-x-auto hide-scrollbar py-0.5";
+          }
+
+          const trophySvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+          visible.forEach((p, rank) => {
+            const isLead = rank === 0;
+            const isSecond = rank === 1;
+            const isThird = rank === 2;
+
+            const badgeBg = isLead
+              ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+              : isSecond
+              ? "bg-slate-100 border-slate-200 text-slate-700"
+              : isThird
+              ? "bg-orange-100 border-orange-200 text-orange-800"
+              : "bg-slate-100 border-slate-200 text-slate-600";
+
+            const isActiveRoundWinner =
+              typeof winnerIdx === "number" && winnerIdx === p.i;
+
+            const col =
+              p.s > 0
+                ? "text-emerald-600"
+                : p.s < 0
+                ? "text-rose-600"
+                : isActiveRoundWinner
+                ? "text-emerald-600"
+                : "text-slate-400";
+
+            const sign =
+              p.s > 0 || (p.s === 0 && isActiveRoundWinner) ? "+" : "";
+
+            const badgeContent = isLead
+              ? trophySvg
+              : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+            if (showAll) {
+              h += `
+                <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                        ${badgeContent}
+                      </div>
+                      <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                    </div>
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  </div>
+                </div>
+              `;
+            } else {
+              h += `
+                <div class="shrink-0 rounded-lg border border-yellow-100 bg-white/70 px-2 py-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center">
+                      ${badgeContent}
+                    </div>
+                    <div class="text-xs font-black text-slate-800 max-w-[120px] truncate">${p.n}</div>
+                    <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+                  </div>
+                </div>
+              `;
+            }
+          });
+
+          el.innerHTML = h;
+        },
+
+        actionButton() {
+          const btn = document.getElementById("smartActionBtn");
+          if (State.game.players.length === 0) {
+            btn.classList.add("hidden");
+            return;
+          }
+
+          btn.classList.remove("hidden");
+
+          if (State.game.editingIdx !== null) {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.classList.replace("bg-orange-600", "bg-slate-900");
+            btn.disabled = false;
+            btn.innerHTML = `<div class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-orange-400"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L16.862 4.487" /></svg></div><span class="text-lg">Salvar Alterações</span>`;
+            return;
+          }
+
+          if (!State.isGameStarted()) {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.classList.replace("bg-slate-900", "bg-orange-600");
+            btn.disabled = State.game.players.length < GameLimits.MIN_PLAYERS;
+            btn.innerHTML =
+              '<span class="text-lg">Iniciar Rodada</span>';
+            return;
+          }
+
+          if (State.game.currIdx >= State.game.rounds.length) {
+            btn.classList.replace("bg-slate-900", "bg-emerald-600");
+            btn.classList.replace("bg-orange-600", "bg-emerald-600");
+            btn.innerHTML = "<span>Jogo Finalizado</span>";
+            // Mantém clicável para abrir o resumo final.
+            btn.disabled = false;
+          } else {
+            btn.classList.replace("bg-emerald-600", "bg-slate-900");
+            btn.disabled = false;
+            btn.innerHTML = `<div class="bg-slate-800 p-1.5 rounded-lg group-hover:bg-slate-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-orange-400"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><span class="text-lg">Concluir Rodada</span>`;
+          }
+        },
+      };
+
+      // === GLOBAL MODALS ===
+      let confirmCallback = null;
+      function showConfirm(title, msg, cb) {
+        document.getElementById("confirmTitle").innerText = title;
+        document.getElementById("confirmMsg").innerText = msg;
+        confirmCallback = cb;
+        document.getElementById("confirmModal").classList.remove("hidden");
+      }
+      function closeConfirm() {
+        document.getElementById("confirmModal").classList.add("hidden");
+        confirmCallback = null;
+      }
+      function execConfirm() {
+        if (confirmCallback) confirmCallback();
+        closeConfirm();
+      }
+
+      function confirmReset() {
+        showConfirm(
+          "Reiniciar Jogo?",
+          "Todos os dados da partida serão perdidos.",
+          () => {
+            State.game = {
+              players: [],
+              rounds: [],
+              currIdx: 0,
+              editingIdx: null,
+              locked: false,
+              started: false,
+              tileDetails: {},
+              roundWinners: {},
+            };
+            State.save();
+            Render.all();
+          }
+        );
+      }
+
+      function closeGameOverModal() {
+        document.getElementById("gameOverModal").classList.add("hidden");
+      }
+
+      function restartFromGameOver() {
+        closeGameOverModal();
+        confirmReset();
+      }
+
+      function openGameOverModal() {
+        const sums = new Array(State.game.players.length).fill(0);
+        (State.game.rounds || []).forEach((r) => {
+          if (!Array.isArray(r)) return;
+          r.forEach((v, i) => {
+            const n = parseInt(v);
+            if (!isNaN(n)) sums[i] += n;
+          });
+        });
+
+        const ranked = sums
+          .map((s, i) => ({ i, n: State.game.players[i], s }))
+          .sort((a, b) => (b.s - a.s) || (a.i - b.i));
+
+        const winner = ranked.length ? ranked[0] : null;
+        const title = document.getElementById("gameOverTitle");
+        const subtitle = document.getElementById("gameOverSubtitle");
+        const list = document.getElementById("gameOverRanking");
+
+        if (winner) {
+          title.textContent = `Parabéns, ${winner.n}!`;
+          subtitle.textContent = "Vencedor(a) da partida. Classificação final:";
+        } else {
+          title.textContent = "Jogo finalizado!";
+          subtitle.textContent = "Classificação final:";
+        }
+
+        let html = "";
+        const trophySvg =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 trophy-icon" aria-hidden="true"><path d="M10 2a.75.75 0 01.75.75v.846a4.5 4.5 0 003.66 4.411.75.75 0 01.64.74v1.003a4.5 4.5 0 01-3.155 4.29l-.695.232a.75.75 0 00-.51.711V16.5h1.5a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.5v-1.525a.75.75 0 00-.51-.711l-.695-.232A4.5 4.5 0 015.5 9.75V8.747a.75.75 0 01.64-.74 4.5 4.5 0 003.66-4.411V2.75A.75.75 0 0110 2z" /><path d="M4.5 5.75a.75.75 0 00-1.5 0v2A2.75 2.75 0 005.75 10.5h.392a6.023 6.023 0 01-.439-1.5H5.75A1.25 1.25 0 014.5 7.75v-2zM15.5 5.75a.75.75 0 011.5 0v2a2.75 2.75 0 01-2.75 2.75h-.392c.216-.48.364-.98.439-1.5h-.047A1.25 1.25 0 0015.5 7.75v-2z" /></svg>';
+
+        ranked.forEach((p, rank) => {
+          const isLead = rank === 0;
+          const isSecond = rank === 1;
+          const isThird = rank === 2;
+
+          const badgeBg = isLead
+            ? "bg-yellow-100 border-yellow-200 text-yellow-800"
+            : isSecond
+            ? "bg-slate-100 border-slate-200 text-slate-700"
+            : isThird
+            ? "bg-orange-100 border-orange-200 text-orange-800"
+            : "bg-slate-100 border-slate-200 text-slate-600";
+
+          const col =
+            p.s > 0
+              ? "text-emerald-600"
+              : p.s < 0
+              ? "text-rose-600"
+              : "text-slate-400";
+
+          const sign = p.s > 0 ? "+" : "";
+          const badgeContent = isLead
+            ? trophySvg
+            : `<span class="text-xs font-black tabular-nums">${rank + 1}</span>`;
+
+          html += `
+            <div class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="w-6 h-6 rounded-md border ${badgeBg} flex items-center justify-center shrink-0">
+                    ${badgeContent}
+                  </div>
+                  <div class="text-xs font-bold text-slate-800 truncate min-w-0">${p.n}</div>
+                </div>
+                <div class="text-xs font-black tabular-nums ${col}">${sign}${p.s}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        list.innerHTML = html;
+        document.getElementById("gameOverModal").classList.remove("hidden");
+      }
+
+      function showError(msg) {
+        document.getElementById("errorModalMsg").innerText = msg;
+        document.getElementById("errorModal").classList.remove("hidden");
+      }
+
+      function showErrorDialog(diff, pos, neg) {
+        const m = document.getElementById("errorModal");
+        document.getElementById(
+          "errorModalMsg"
+        ).innerHTML = `<div class="space-y-3"><p>A soma deve ser zero.</p><div class="flex justify-between text-xs font-bold uppercase bg-slate-50 p-3 rounded-lg border border-slate-200"><div class="text-emerald-600 text-center">Positivos<br><span class="text-lg">+${pos}</span></div><div class="text-rose-600 text-center">Negativos<br><span class="text-lg">${neg}</span></div></div><div class="bg-red-50 p-2 rounded-lg text-center"><p class="text-xs font-bold text-red-800 uppercase mb-1">Diferença</p><p class="text-2xl font-black text-red-600">${
+          diff > 0 ? "+" : ""
+        }${diff}</p></div></div>`;
+        m.classList.remove("hidden");
+      }
+
+      let pendingCalculation = null;
+
+      function openWinnerModal(roundIdx, playerIdx, score) {
+        const name = (State.game.players && State.game.players[playerIdx]) || "";
+        const nameEl = document.getElementById("modalWinnerName");
+        const scoreEl = document.getElementById("modalWinnerScore");
+        const badgeEl = document.getElementById("modalWinnerBadge");
+        const msgEl = document.getElementById("winnerModalMsg");
+        const modal = document.getElementById("winnerModal");
+        const confirmBtn = document.getElementById("confirmWinnerBtn");
+
+        if (nameEl) nameEl.textContent = name;
+
+        const sStr = `${score > 0 ? "+" : ""}${score}`;
+        if (scoreEl) scoreEl.textContent = sStr;
+        if (badgeEl) {
+          badgeEl.textContent = sStr;
+          badgeEl.classList.remove("bg-emerald-600", "bg-rose-600");
+          badgeEl.classList.add(score >= 0 ? "bg-emerald-600" : "bg-rose-600");
+          // trigger pulse animation
+          badgeEl.classList.remove("badge-pulse");
+          void badgeEl.offsetWidth; // force reflow
+          badgeEl.classList.add("badge-pulse");
+          // remove the class after animation to keep DOM clean
+          setTimeout(() => badgeEl.classList.remove("badge-pulse"), 700);
+        }
+
+        if (msgEl)
+          msgEl.textContent = `Pontos calculados: ${sStr}. Confirme para aplicar e encerrar a rodada.`;
+
+        pendingCalculation = { roundIdx, playerIdx, score };
+        modal.classList.remove("hidden");
+
+        // foco no botão confirmar para melhor acessibilidade
+        if (confirmBtn && confirmBtn.focus) {
+          confirmBtn.focus();
+        }
+
+        // som de confirmação leve
+        if (typeof Sound !== "undefined" && Sound.tick) Sound.tick();
+      }
+
+      function confirmWinner() {
+        if (pendingCalculation) {
+          State.game.rounds[pendingCalculation.roundIdx][
+            pendingCalculation.playerIdx
+          ] = pendingCalculation.score.toString();
+          document.getElementById("winnerModal").classList.add("hidden");
+          Actions.finishAction(pendingCalculation.roundIdx);
+        }
+      }
+
+      function closeWinnerModal() {
+        document.getElementById("winnerModal").classList.add("hidden");
+        pendingCalculation = null;
+      }
+
+      document.getElementById("confirmBtnAction").onclick = execConfirm;
+      State.init();
+      Timer.updateUI();
+      Render.all();
+    </script>
   </body>
 </html>
