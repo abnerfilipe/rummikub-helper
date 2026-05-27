@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Aplicativo para acompanhar pontuações do Rummikub">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Rummikub Helper">
+  <meta name="theme-color" content="#EA580C">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="manifest" href="manifest.json">
+  <title>Rummikub Helper</title>
+  <style>
+    body { background-color: #EA580C; }
+  </style>
+</head>
+<body>
+  <script>
+    var serviceWorkerVersion = null;
+    var scriptLoaded = false;
+    function loadMainDartJs() {
+      if (scriptLoaded) { return; }
+      scriptLoaded = true;
+      var scriptTag = document.createElement('script');
+      scriptTag.src = 'main.dart.js';
+      scriptTag.type = 'application/javascript';
+      document.body.append(scriptTag);
+    }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        var cacheName = 'flutter-app-cache';
+        var serviceWorkerUrl = 'flutter_service_worker.js?v=' + serviceWorkerVersion;
+        navigator.serviceWorker.register(serviceWorkerUrl).then(function (reg) {
+          function waitForActivation(serviceWorker) {
+            serviceWorker.addEventListener('statechange', function () {
+              if (serviceWorker.state == 'activated') {
+                console.log('Installed new service worker.');
+                loadMainDartJs();
+              }
+            });
+          }
+          if (!reg.active && (reg.installing || reg.waiting)) {
+            waitForActivation(reg.installing || reg.waiting);
+          } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
+            console.log('New service worker available.');
+            reg.addEventListener('updatefound', function () {
+              waitForActivation(reg.installing);
+            });
+            reg.update();
+          } else {
+            loadMainDartJs();
+          }
+        });
+        setTimeout(function () {
+          if (!scriptLoaded) {
+            console.warn('Failed to load app from service worker. Falling back to plain <script> tag.');
+            loadMainDartJs();
+          }
+        }, 4000);
+      });
+    } else {
+      loadMainDartJs();
+    }
+  </script>
+</body>
+</html>
